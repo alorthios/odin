@@ -23,9 +23,9 @@ function renderPlayers() {
     </div>`;
   }).join("");
   const me = room.players.find((player) => player.id === state.playerId);
-  const canStart = Boolean(me?.host && room.players.length >= 3 && !room.started);
+  const canStart = Boolean(me?.host && room.players.length >= 2 && !room.started);
   $("#startGameButton").disabled = !canStart;
-  $("#lobbyMessage").textContent = room.started ? "La partie est lancée !" : room.players.length < 3 ? `Encore ${3 - room.players.length} joueur${3 - room.players.length > 1 ? "s" : ""} pour commencer…` : me?.host ? "Vous pouvez lancer la partie !" : "En attente du lancement par l’hôte…";
+  $("#lobbyMessage").textContent = room.started ? "La partie est lancée !" : room.players.length < 2 ? "Encore 1 joueur pour commencer…" : me?.host ? "Vous pouvez lancer la partie !" : "En attente du lancement par l’hôte…";
   if (room.started) $("#lobbyScreen").classList.add("hidden");
   if (room.started) {
     $("#turnTimer").textContent = room.currentPlayerId === state.playerId ? "À TOI" : "ATTENDS";
@@ -83,7 +83,12 @@ socket.addEventListener("open", () => { $("#connectionStatus").textContent = "Co
 socket.addEventListener("close", () => { $("#connectionStatus").textContent = "Connexion perdue — recharge la page."; showToast("Connexion au salon interrompue."); });
 socket.addEventListener("message", (event) => {
   const message = JSON.parse(event.data);
-  if (message.type === "joined") { state.playerId = message.playerId; $("#connectionStatus").textContent = "Dans le salon ✓"; return; }
+  if (message.type === "joined") {
+    state.playerId = message.playerId;
+    $("#connectionStatus").textContent = "Dans le salon ✓";
+    $("#lobbyScreen").classList.add("hidden");
+    return;
+  }
   if (message.type === "state") { applyState(message.room, message.hand); if (message.room.lastAction) addActivity(message.room.lastAction); return; }
   if (message.type === "error") showToast(message.message);
 });

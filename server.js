@@ -86,7 +86,7 @@ function dealRound(room) {
 }
 
 function startGame(room) {
-  if (room.players.size < 3) return;
+  if (room.players.size < 2) return;
   room.started = true;
   room.round = 1;
   room.players.forEach((player) => room.scores.set(player.id, 0));
@@ -136,7 +136,7 @@ function handleMessage(socket, message) {
   if (!player) return error(socket, "Rejoins le salon avant de jouer.");
   if (message.type === "start") {
     if (!player.host) return error(socket, "Seul l'hôte peut lancer la partie.");
-    if (room.players.size < 3) return error(socket, "Il faut au moins 3 joueurs pour commencer.");
+    if (room.players.size < 2) return error(socket, "Il faut au moins 2 joueurs pour commencer.");
     return startGame(room);
   }
   if (!room.started) return error(socket, "La partie n'a pas encore commencé.");
