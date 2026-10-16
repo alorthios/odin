@@ -69,16 +69,13 @@ function renderTable() {
   $("#comboValue").textContent = table ? `x${table.cards.length} • ${table.value}` : "—";
   const isMyTurn = state.room.currentPlayerId === state.playerId;
   $(".board").classList.toggle("inactive-board", !isMyTurn);
+  $("#turnAxe").classList.toggle("visible", isMyTurn);
+  $("#turnAxe").setAttribute("aria-hidden", String(!isMyTurn));
   $("#tableStatus").textContent = isMyTurn ? "À TOI DE JOUER" : table ? `TOUR DE ${table.playerName.toUpperCase()}` : "EN ATTENTE DU TOUR";
   $("#playedArea").innerHTML = table ? `<div class="played-cards">${table.cards.map((card) => `<button class="card ${card.color}-card ${state.pickupCardId === card.id ? "selected" : ""}" data-pickup-id="${card.id}" type="button" ${isMyTurn ? "" : "disabled"}><span class="card-value">${card.value}</span><span class="card-suit">${symbol(card.color)}</span><span class="card-label">${escapeHtml(table.playerName)}</span></button>`).join("")}</div><p class="pickup-note">${isMyTurn && state.hand.length > state.selected.size ? "Choisis la carte de la combinaison précédente que tu ramasses." : "Combinaison posée par " + escapeHtml(table.playerName)}</p>` : `<div class="empty-board"><strong>Aucune combinaison posée</strong><small>${isMyTurn ? "C'est ton tour : ouvre avec une carte." : "En attente du premier joueur."}</small></div>`;
   $("#playedArea").querySelectorAll("[data-pickup-id]").forEach((button) => button.addEventListener("click", () => {
     state.pickupCardId = button.dataset.pickupId;
     renderTable();
-    if (room.lastAction && room.lastAction !== previousAction) {
-      addActivity(room.lastAction);
-      if (room.lastAction.includes("joue")) triggerEffect("card-play-effect");
-      if (room.lastAction.includes("remporte")) triggerEffect("victory-effect");
-    }
     updatePlayButton();
   }));
 }
@@ -93,6 +90,11 @@ function applyState(room, hand) {
   renderPlayers();
   renderHand();
   renderTable();
+  if (room.lastAction && room.lastAction !== previousAction) {
+    addActivity(room.lastAction);
+    if (room.lastAction.includes("joue")) triggerEffect("card-play-effect");
+    if (room.lastAction.includes("remporte")) triggerEffect("victory-effect");
+  }
   if (state.timer) clearInterval(state.timer);
   state.timer = setInterval(updateTimer, 250);
   updateTimer();
