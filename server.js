@@ -9,11 +9,12 @@ const port = Number(process.env.PORT || 8080);
 const roomCode = "FJORD-72";
 const maxPlayers = 6;
 const cardsPerPlayer = 9;
+const turnDurationMs = 60_000;
 const colors = ["pink", "yellow", "cyan", "orange", "violet", "lime"];
 const rooms = new Map([[roomCode, createRoom()]]);
 
 function createRoom() {
-  return { players: new Map(), started: false, round: 1, scores: new Map(), table: null, currentPlayerId: null, passCount: 0, lastAction: "Le salon attend ses champions." };
+  return { players: new Map(), started: false, round: 1, scores: new Map(), table: null, currentPlayerId: null, turnEndsAt: null, turnTimer: null, passCount: 0, lastAction: "Le salon attend ses champions." };
 }
 
 function createDeck() {
@@ -43,6 +44,7 @@ function publicRoom(room) {
     started: room.started,
     round: room.round,
     currentPlayerId: room.currentPlayerId,
+    turnEndsAt: room.turnEndsAt,
     table: room.table ? { cards: room.table.cards, value: room.table.value, playerName: room.table.playerName } : null,
     lastAction: room.lastAction,
     players: [...room.players.values()].map((player) => ({
@@ -65,7 +67,7 @@ function combinationValue(cards) {
 }
 
 function isValidCombination(cards) {
-  if (!cards.length || cards.length > 4) return false;
+  if (!cards.length) return false;
   const sameColor = cards.every((card) => card.color === cards[0].color);
   const sameValue = cards.every((card) => card.value === cards[0].value);
   return sameColor || sameValue;
@@ -77,12 +79,35 @@ function canBeat(cards, previous) {
   return correctSize && combinationValue(cards) > previous.value;
 }
 
+function clearTurnTimer(room) {
+  if (room.turnTimer) clearTimeout(room.turnTimer);
+  room.turnTimer = null;
+}
+
+function scheduleTurn(room) {
+  clearTurnTimer(room);
+  if (!room.started || !room.currentPlayerId) {
+    room.turnEndsAt = null;
+    return;
+  }
+  room.turnEndsAt = Date.now() + turnDurationMs;
+  room.turnTimer = setTimeout(() => {
+    if (!room.started || Date.now() < room.turnEndsAt) return scheduleTurn(room);
+    const player = room.players.get(room.currentPlayerId);
+    if (!player) return;
+    room.lastAction = `${player.name} n'a pas joué à temps.`;
+    advanceTurn(room);
+    syncRoom(room);
+  }, turnDurationMs + 50);
+}
+
 function dealRound(room) {
   const deck = shuffle(createDeck());
   room.players.forEach((player) => { player.hand = deck.splice(0, cardsPerPlayer); player.ready = true; });
   room.table = null;
   room.passCount = 0;
   room.currentPlayerId = [...room.players.keys()][0];
+  scheduleTurn(room);
 }
 
 function startGame(room) {
@@ -108,8 +133,18 @@ function finishRound(room, winner) {
   const gameOver = [...room.scores.values()].some((score) => score >= 15);
   if (gameOver) {
     room.started = false;
+    clearTurnTimer(room);
+    room.turnEndsAt = null;
+    room.currentPlayerId = null;
     room.lastAction = `${winner.name} remporte la manche. La partie est terminée.`;
     return;
+  }
+
+  function advanceTurn(room) {
+    const ids = [...room.players.keys()];
+    const currentIndex = ids.indexOf(room.currentPlayerId);
+    room.currentPlayerId = ids[(currentIndex + 1) % ids.length];
+    scheduleTurn(room);
   }
   room.round += 1;
   dealRound(room);
@@ -149,7 +184,7 @@ function handleMessage(socket, message) {
       room.passCount = 0;
       room.lastAction += " La table est réinitialisée.";
     }
-    nextPlayer(room);
+    advanceTurn(room);
     return syncRoom(room);
   }
   if (message.type === "play") {
@@ -158,15 +193,18 @@ function handleMessage(socket, message) {
     const cards = ids.map((id) => player.hand.find((card) => card.id === id)).filter(Boolean);
     if (cards.length !== ids.length || new Set(ids).size !== ids.length) return error(socket, "Cette combinaison n'est pas dans ta main.");
     if (!isValidCombination(cards)) return error(socket, "Les cartes doivent être de même couleur ou de même valeur.");
+    if (!room.table && cards.length !== 1 && cards.length !== player.hand.length) return error(socket, "Pour ouvrir, pose une carte ou toute ta main.");
     if (!canBeat(cards, room.table)) return error(socket, "Cette combinaison ne bat pas celle de la table.");
+    const pickupCardId = message.pickupCardId;
+    if (room.table && player.hand.length > cards.length && !room.table.cards.some((card) => card.id === pickupCardId)) return error(socket, "Choisis la carte à ramasser dans la combinaison précédente.");
     player.hand = player.hand.filter((card) => !ids.includes(card.id));
     const previousTable = room.table;
     room.table = { cards, value: combinationValue(cards), playerName: player.name };
     room.passCount = 0;
-    if (previousTable && player.hand.length > 0) player.hand.push(previousTable.cards[0]);
+    if (previousTable && player.hand.length > 0) player.hand.push(previousTable.cards.find((card) => card.id === pickupCardId));
     room.lastAction = `${player.name} joue ${cards.length} carte${cards.length > 1 ? "s" : ""}.`;
     if (player.hand.length === 0) finishRound(room, player);
-    else nextPlayer(room);
+    else advanceTurn(room);
     return syncRoom(room);
   }
   error(socket, "Action inconnue.");

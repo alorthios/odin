@@ -20,7 +20,7 @@
           <p class="lobby-subtitle">Choisis ton pseudo, invite tes champions et sois le premier à vider ta main.</p>
           <form class="login-form" id="loginForm">
             <label for="nickname">TON PSEUDO</label>
-            <div class="login-row"><input id="nickname" name="nickname" maxlength="18" minlength="2" autocomplete="nickname" placeholder="Ex : Ragnar" required /><button class="primary-button" type="submit">REJOINDRE ⚔️</button></div>
+            <div class="login-row"><input id="nickname" name="nickname" maxlength="18" minlength="2" autocomplete="nickname" required /><button class="primary-button" type="submit">REJOINDRE ⚔️</button></div>
           </form>
           <div class="lobby-room"><span class="live-dot"></span> SALON <strong>#FJORD-72</strong><span class="lobby-room-note">2 à 6 joueurs</span></div>
           <p class="connection-status" id="connectionStatus">Connexion au fjord…</p>
@@ -45,7 +45,7 @@
         <section class="game-column">
           <div class="game-heading">
             <div>
-              <p class="eyebrow pink">PARTIE CLASSÉE <span>•</span> MANCHE 04</p>
+              <p class="eyebrow pink">PARTIE CLASSÉE <span>•</span> <span id="roundLabel">MANCHE 1</span></p>
               <h1>À qui le <span>Valhalla</span> ?</h1>
               <p class="subline">Pose tes cartes, vole la vedette. Le dernier mot appartient au plus malin.</p>
             </div>
@@ -53,16 +53,16 @@
           </div>
 
           <div class="status-strip">
-            <div class="turn-status"><span class="turn-pulse"></span><strong>À TOI DE JOUER</strong><span>•</span><span id="turnTimer">00:42</span></div>
-            <div class="round-progress" aria-label="Progression de la manche"><span style="width: 62%"></span></div>
-            <div class="round-label">MANCHE <strong>4</strong> / 6</div>
+            <div class="turn-status"><span class="turn-pulse"></span><strong>EN ATTENTE</strong><span>•</span><span id="turnTimer">01:00</span></div>
+            <div class="round-progress" aria-label="Temps restant du tour"><span style="width: 0%"></span></div>
+            <div class="round-label">MANCHE <strong id="roundNumber">1</strong></div>
           </div>
 
           <div class="board-wrap">
             <div class="board-decoration rune-one" aria-hidden="true">ᚦ</div>
             <div class="board-decoration rune-two" aria-hidden="true">ᛟ</div>
             <div class="board">
-              <div class="board-topline"><span>TABLE CENTRALE</span><span>PISTE DE GLORY <b>✦ 18</b></span></div>
+              <div class="board-topline"><span>TABLE CENTRALE</span><span id="tableStatus">EN ATTENTE DU TOUR</span></div>
               <div class="played-area" id="playedArea" aria-live="polite">
                 <div class="empty-board">
                   <span class="empty-icon">🪓</span>
@@ -70,13 +70,13 @@
                   <small>Joue une combinaison de 1 à 4 cartes</small>
                 </div>
               </div>
-              <div class="board-footer"><span>⚔️ COMBO ACTUEL <strong id="comboValue">—</strong></span><span>PROCHAIN JOUEUR <strong>Inès</strong> →</span></div>
+              <div class="board-footer"><span>⚔️ COMBO ACTUEL <strong id="comboValue">—</strong></span><span>TOUR DE <strong id="nextPlayer">—</strong></span></div>
             </div>
           </div>
 
           <section class="hand-section">
             <div class="hand-heading">
-              <div><p class="eyebrow cyan">TON ARSENAL</p><h2>Ta main <span id="cardCount">(9 cartes)</span></h2></div>
+              <div><p class="eyebrow cyan">TON ARSENAL</p><h2>Ta main <span id="cardCount">(—)</span></h2></div>
               <div class="hand-hint">Clique pour sélectionner <span>→</span> <strong>glisse pour réordonner</strong></div>
             </div>
             <div class="hand" id="hand" aria-label="Cartes dans votre main"></div>
@@ -89,7 +89,7 @@
 
         <aside class="sidebar">
           <div class="players-card panel">
-            <div class="panel-heading"><h2>Les clans <span>⚡</span></h2><span class="player-count">4/4</span></div>
+            <div class="panel-heading"><h2>Les clans <span>⚡</span></h2><span class="player-count">0/6</span></div>
             <div class="player-list" id="playerList"></div>
             <div class="lobby-start"><p id="lobbyMessage">En attente de 2 joueurs minimum…</p><button class="primary-button" id="startGameButton" type="button" disabled>LANCER LA PARTIE ⚡</button></div>
           </div>

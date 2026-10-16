@@ -1,5 +1,5 @@
 const socket = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}`);
-const state = { playerId: null, room: null, hand: [], selected: new Set(), name: "" };
+const state = { playerId: null, room: null, hand: [], selected: new Set(), pickupCardId: null, name: "", timer: null };
 const $ = (selector) => document.querySelector(selector);
 const send = (message) => socket.readyState === WebSocket.OPEN && socket.send(JSON.stringify(message));
 
@@ -9,6 +9,14 @@ function showToast(message) {
   toast.classList.add("show");
   clearTimeout(showToast.timer);
   showToast.timer = setTimeout(() => toast.classList.remove("show"), 2600);
+}
+
+function triggerEffect(className) {
+  const element = document.querySelector(".app-shell");
+  element.classList.remove(className);
+  void element.offsetWidth;
+  element.classList.add(className);
+  setTimeout(() => element.classList.remove(className), 1200);
 }
 
 function renderPlayers() {
@@ -23,20 +31,23 @@ function renderPlayers() {
     </div>`;
   }).join("");
   const me = room.players.find((player) => player.id === state.playerId);
+  $(".player-count").textContent = `${room.players.length}/6`;
   const canStart = Boolean(me?.host && room.players.length >= 2 && !room.started);
   $("#startGameButton").disabled = !canStart;
   $("#lobbyMessage").textContent = room.started ? "La partie est lancée !" : room.players.length < 2 ? "Encore 1 joueur pour commencer…" : me?.host ? "Vous pouvez lancer la partie !" : "En attente du lancement par l’hôte…";
   if (room.started) $("#lobbyScreen").classList.add("hidden");
   if (room.started) {
-    $("#turnTimer").textContent = room.currentPlayerId === state.playerId ? "À TOI" : "ATTENDS";
+    $("#turnTimer").textContent = room.currentPlayerId === state.playerId ? formatRemaining(room.turnEndsAt) : "ATTENDS";
     $(".turn-status strong").textContent = room.currentPlayerId === state.playerId ? "À TOI DE JOUER" : "TOUR ADVERSE";
   }
+  updatePlayButton();
 }
 
 function renderHand() {
   $("#cardCount").textContent = `(${state.hand.length} carte${state.hand.length > 1 ? "s" : ""})`;
   $("#hand").innerHTML = state.hand.map((card) => `<button class="card ${card.color}-card ${state.selected.has(card.id) ? "selected" : ""}" data-id="${card.id}" type="button" aria-label="Carte ${card.value} ${card.color}" aria-pressed="${state.selected.has(card.id)}"><span class="card-value">${card.value}</span><span class="card-suit">${symbol(card.color)}</span><span class="card-label">ODIN</span></button>`).join("");
   $("#hand").querySelectorAll(".card").forEach((button) => button.addEventListener("click", () => {
+    if (state.room?.currentPlayerId !== state.playerId) return;
     const id = button.dataset.id;
     state.selected.has(id) ? state.selected.delete(id) : state.selected.add(id);
     renderHand();
@@ -47,24 +58,67 @@ function renderHand() {
 
 function updatePlayButton() {
   const count = state.selected.size;
-  $("#playButton").disabled = !count || state.room?.currentPlayerId !== state.playerId;
+  const isMyTurn = state.room?.currentPlayerId === state.playerId;
+  $("#playButton").disabled = !count || !isMyTurn || (state.room?.table && state.hand.length > count && !state.pickupCardId);
+  $("#passButton").disabled = !isMyTurn;
   $("#playButton").innerHTML = count ? `JOUER ${count} CARTE${count > 1 ? "S" : ""} <span>⚡</span>` : "JOUER LA COMBO <span>⚡</span>";
 }
 
 function renderTable() {
   const table = state.room.table;
   $("#comboValue").textContent = table ? `x${table.cards.length} • ${table.value}` : "—";
-  $("#playedArea").innerHTML = table ? `<div class="played-cards">${table.cards.map((card) => `<div class="card ${card.color}-card selected"><span class="card-value">${card.value}</span><span class="card-suit">${symbol(card.color)}</span><span class="card-label">${escapeHtml(table.playerName)}</span></div>`).join("")}</div>` : `<div class="empty-board"><span class="empty-icon">🪓</span><strong>La piste est à toi</strong><small>Joue une combinaison de 1 à 4 cartes</small></div>`;
+  const isMyTurn = state.room.currentPlayerId === state.playerId;
+  $(".board").classList.toggle("inactive-board", !isMyTurn);
+  $("#tableStatus").textContent = isMyTurn ? "À TOI DE JOUER" : table ? `TOUR DE ${table.playerName.toUpperCase()}` : "EN ATTENTE DU TOUR";
+  $("#playedArea").innerHTML = table ? `<div class="played-cards">${table.cards.map((card) => `<button class="card ${card.color}-card ${state.pickupCardId === card.id ? "selected" : ""}" data-pickup-id="${card.id}" type="button" ${isMyTurn ? "" : "disabled"}><span class="card-value">${card.value}</span><span class="card-suit">${symbol(card.color)}</span><span class="card-label">${escapeHtml(table.playerName)}</span></button>`).join("")}</div><p class="pickup-note">${isMyTurn && state.hand.length > state.selected.size ? "Choisis la carte de la combinaison précédente que tu ramasses." : "Combinaison posée par " + escapeHtml(table.playerName)}</p>` : `<div class="empty-board"><strong>Aucune combinaison posée</strong><small>${isMyTurn ? "C'est ton tour : ouvre avec une carte." : "En attente du premier joueur."}</small></div>`;
+  $("#playedArea").querySelectorAll("[data-pickup-id]").forEach((button) => button.addEventListener("click", () => {
+    state.pickupCardId = button.dataset.pickupId;
+    renderTable();
+    if (room.lastAction && room.lastAction !== previousAction) {
+      addActivity(room.lastAction);
+      if (room.lastAction.includes("joue")) triggerEffect("card-play-effect");
+      if (room.lastAction.includes("remporte")) triggerEffect("victory-effect");
+    }
+    updatePlayButton();
+  }));
 }
 
 function applyState(room, hand) {
+  const previousAction = state.room?.lastAction;
   state.room = room;
   state.hand = hand;
   state.selected.clear();
+  state.pickupCardId = null;
   $("#roomCode").textContent = `#${room.roomCode}`;
   renderPlayers();
   renderHand();
   renderTable();
+  if (state.timer) clearInterval(state.timer);
+  state.timer = setInterval(updateTimer, 250);
+  updateTimer();
+}
+
+function formatRemaining(turnEndsAt) {
+  if (!turnEndsAt) return "00:00";
+  const seconds = Math.max(0, Math.ceil((turnEndsAt - Date.now()) / 1000));
+  return `00:${String(seconds).padStart(2, "0")}`;
+}
+
+function updateTimer() {
+  if (!state.room?.started) return;
+  const isMyTurn = state.room.currentPlayerId === state.playerId;
+  const remaining = formatRemaining(state.room.turnEndsAt);
+  $("#turnTimer").textContent = isMyTurn ? remaining : "ATTENDS";
+  const percentage = state.room.turnEndsAt ? Math.max(0, Math.min(100, ((state.room.turnEndsAt - Date.now()) / 60000) * 100)) : 0;
+  $(".round-progress span").style.width = `${percentage}%`;
+  if (isMyTurn && formatRemaining(state.room.turnEndsAt) === "00:00") {
+    $("#playButton").disabled = true;
+    $("#passButton").disabled = true;
+  }
+  $("#roundLabel").textContent = `MANCHE ${room.round}`;
+  $("#roundNumber").textContent = room.round;
+  const nextPlayer = room.players.find((player) => player.id === room.currentPlayerId);
+  $("#nextPlayer").textContent = nextPlayer ? escapeHtml(nextPlayer.name) : "—";
 }
 
 function addActivity(text, icon = "⚡", iconClass = "icon-yellow") {
@@ -89,7 +143,7 @@ socket.addEventListener("message", (event) => {
     $("#lobbyScreen").classList.add("hidden");
     return;
   }
-  if (message.type === "state") { applyState(message.room, message.hand); if (message.room.lastAction) addActivity(message.room.lastAction); return; }
+  if (message.type === "state") { applyState(message.room, message.hand); return; }
   if (message.type === "error") showToast(message.message);
 });
 
@@ -100,8 +154,9 @@ $("#loginForm").addEventListener("submit", (event) => {
 });
 $("#startGameButton").addEventListener("click", () => send({ type: "start" }));
 $("#playButton").addEventListener("click", () => {
-  send({ type: "play", cardIds: [...state.selected] });
+  send({ type: "play", cardIds: [...state.selected], pickupCardId: state.pickupCardId });
   state.selected.clear();
+  state.pickupCardId = null;
 });
 $("#passButton").addEventListener("click", () => send({ type: "pass" }));
 $("#chatButton").addEventListener("click", () => showToast("Le chat arrive bientôt dans le fjord 💬"));
