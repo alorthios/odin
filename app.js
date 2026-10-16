@@ -63,7 +63,11 @@ function renderPlayers() {
   $(".player-count").textContent = `${room.players.length}/6`;
   const canStart = Boolean(me?.host && room.players.length >= 2 && !room.started);
   $("#startGameButton").disabled = !canStart;
-  $("#lobbyMessage").textContent = room.started ? "La partie est lancée !" : room.players.length < 2 ? "Encore 1 joueur pour commencer…" : me?.host ? "Vous pouvez lancer la partie !" : "En attente du lancement par l’hôte…";
+  const lobbyMessage = room.started ? "La partie est lancée !" : room.players.length < 2 ? "Encore 1 joueur pour commencer…" : me?.host ? "Vous pouvez lancer la partie !" : "En attente du lancement par l’hôte…";
+  $("#lobbyMessage").textContent = lobbyMessage;
+  $("#lobbyScreenMessage").textContent = lobbyMessage;
+  $("#lobbyPlayers").innerHTML = room.players.map((player) => `<span class="lobby-player-chip">${escapeHtml(player.name)}${player.host ? " ★" : ""}</span>`).join("");
+  $("#lobbyStartButton").disabled = !canStart;
   if (room.started) $("#lobbyScreen").classList.add("hidden");
   if (room.started) {
     $("#turnTimer").textContent = room.currentPlayerId === state.playerId ? formatRemaining(room.turnEndsAt) : "ATTENDS";
@@ -178,7 +182,6 @@ socket.addEventListener("message", (event) => {
   if (message.type === "joined") {
     state.playerId = message.playerId;
     $("#connectionStatus").textContent = "Dans le salon ✓";
-    $("#lobbyScreen").classList.add("hidden");
     return;
   }
   if (message.type === "state") { applyState(message.room, message.hand); return; }
@@ -191,6 +194,7 @@ $("#loginForm").addEventListener("submit", (event) => {
   if (state.name.length >= 2) send({ type: "join", name: state.name });
 });
 $("#startGameButton").addEventListener("click", () => send({ type: "start" }));
+$("#lobbyStartButton").addEventListener("click", () => send({ type: "start" }));
 $("#playButton").addEventListener("click", () => {
   send({ type: "play", cardIds: [...state.selected], pickupCardId: state.pickupCardId });
   state.selected.clear();
