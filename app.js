@@ -198,6 +198,24 @@ function symbol(color) {
 }
 function escapeHtml(value) { return value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[character])); }
 
+function renderWaitingRooms(rooms) {
+  const list = $("#waitingRoomsList");
+  $("#waitingRoomsStatus").textContent = `${rooms.length} salon${rooms.length > 1 ? "s" : ""} visible${rooms.length > 1 ? "s" : ""}`;
+  if (!rooms.length) {
+    list.innerHTML = `<p class="waiting-rooms-empty">Aucun salon en attente. Crée le tien avec un nouveau code.</p>`;
+    return;
+  }
+  list.innerHTML = rooms.map((room) => {
+    const status = room.startingAt ? "Lancement imminent" : `${room.playerCount}/${room.maxPlayers} joueur${room.playerCount > 1 ? "s" : ""}`;
+    return `<button class="waiting-room-item" type="button" data-room-code="${escapeHtml(room.roomCode)}"><strong>#${escapeHtml(room.roomCode)}</strong><span>${status}</span><b>REJOINDRE</b></button>`;
+  }).join("");
+  list.querySelectorAll("[data-room-code]").forEach((button) => button.addEventListener("click", () => {
+    $("#roomCodeInput").value = button.dataset.roomCode;
+    $("#roomCodeInput").focus();
+    showToast(`Salon #${button.dataset.roomCode} sélectionné`);
+  }));
+}
+
 socket.addEventListener("open", () => { $("#connectionStatus").textContent = "Connexion sécurisée au fjord ✓"; });
 socket.addEventListener("close", () => { $("#connectionStatus").textContent = "Connexion perdue — recharge la page."; showToast("Connexion au salon interrompue."); });
 socket.addEventListener("message", (event) => {
@@ -205,6 +223,10 @@ socket.addEventListener("message", (event) => {
   if (message.type === "joined") {
     state.playerId = message.playerId;
     $("#connectionStatus").textContent = "Dans le salon ✓";
+    return;
+  }
+  if (message.type === "waiting-rooms") {
+    renderWaitingRooms(message.rooms);
     return;
   }
   if (message.type === "state") {

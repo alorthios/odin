@@ -24,6 +24,10 @@
             <label for="nickname">TON PSEUDO</label>
             <div class="login-row"><input id="nickname" name="nickname" maxlength="18" minlength="2" autocomplete="nickname" required /><button class="primary-button" type="submit">REJOINDRE ⚔️</button></div>
           </form>
+          <div class="waiting-rooms">
+            <div class="waiting-rooms-heading"><span>⚔️ SALONS EN ATTENTE</span><small id="waitingRoomsStatus">Actualisation en direct</small></div>
+            <div class="waiting-rooms-list" id="waitingRoomsList" aria-live="polite"><p class="waiting-rooms-empty">Recherche des salons disponibles…</p></div>
+          </div>
           <div class="lobby-room"><span class="live-dot"></span> SALON <strong id="lobbyRoomCode">#FJORD-72</strong><span class="lobby-room-note">2 à 6 joueurs</span></div>
           <div class="lobby-players" id="lobbyPlayers"></div>
           <p class="lobby-message" id="lobbyScreenMessage">Connecte-toi pour rejoindre la partie.</p>

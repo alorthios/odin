@@ -13,6 +13,7 @@ const turnDurationMs = 60_000;
 const startCountdownMs = 5_000;
 const colors = ["pink", "yellow", "cyan", "orange", "violet", "lime"];
 const rooms = new Map([[defaultRoomCode, createRoom(defaultRoomCode)]]);
+const waitingSockets = new Set();
 
 function createRoom(code) {
   return { code, players: new Map(), started: false, startingAt: null, startTimer: null, round: 1, scores: new Map(), table: null, pendingPickup: null, currentPlayerId: null, turnEndsAt: null, turnTimer: null, passCount: 0, eventId: 0, event: null, chat: [], lastAction: "Le salon attend ses champions." };
@@ -61,6 +62,23 @@ function publicRoom(room) {
 
 function syncRoom(room) {
   room.players.forEach((player) => send(player.socket, { type: "state", playerId: player.id, room: publicRoom(room), hand: player.hand }));
+}
+
+function waitingRooms() {
+  return [...rooms.values()]
+    .filter((room) => !room.started)
+    .map((room) => ({
+      roomCode: room.code,
+      playerCount: room.players.size,
+      maxPlayers,
+      startingAt: room.startingAt
+    }))
+    .sort((first, second) => second.playerCount - first.playerCount || first.roomCode.localeCompare(second.roomCode));
+}
+
+function syncWaitingRooms() {
+  const message = { type: "waiting-rooms", rooms: waitingRooms() };
+  waitingSockets.forEach((socket) => send(socket, message));
 }
 
 function error(socket, message) {
@@ -203,10 +221,12 @@ function handleMessage(socket, message) {
     room.players.set(id, player);
     socket.playerId = id;
     socket.roomCode = requestedCode;
+    waitingSockets.delete(socket);
     rooms.set(requestedCode, room);
     send(socket, { type: "joined", playerId: id, roomCode: requestedCode });
     room.lastAction = `${name} a rejoint le fjord.`;
-    return syncRoom(room);
+    syncRoom(room);
+    return syncWaitingRooms();
   }
   const room = rooms.get(socket.roomCode);
   const player = room?.players.get(socket.playerId);
@@ -288,16 +308,21 @@ const server = createServer(async (request, response) => {
 
 const webSockets = new WebSocketServer({ server });
 webSockets.on("connection", (socket) => {
+  waitingSockets.add(socket);
+  send(socket, { type: "waiting-rooms", rooms: waitingRooms() });
   socket.on("message", (raw) => {
     try { handleMessage(socket, JSON.parse(raw.toString())); } catch { error(socket, "Message invalide."); }
   });
   socket.on("close", () => {
     const room = rooms.get(socket.roomCode);
-    if (!room) return;
+    waitingSockets.delete(socket);
+    if (!room) {
+      return syncWaitingRooms();
+    }
     const player = room.players.get(socket.playerId);
-    if (!player) return;
+    if (!player) return syncWaitingRooms();
     room.players.delete(player.id);
-    if (room.players.size === 0) { rooms.delete(socket.roomCode); return; }
+    if (room.players.size === 0) { rooms.delete(socket.roomCode); return syncWaitingRooms(); }
     if (player.host) room.players.values().next().value.host = true;
     room.lastAction = `${player.name} a quitté le fjord.`;
     if (room.startingAt && room.players.size < 2) {
@@ -306,6 +331,7 @@ webSockets.on("connection", (socket) => {
       room.startingAt = null;
     }
     syncRoom(room);
+    syncWaitingRooms();
   });
 });
 
