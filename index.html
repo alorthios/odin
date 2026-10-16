@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0d0d1a" />
+    <title>ODIN — La bataille des clans</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Bungee&family=DM+Sans:wght@400;500;700;800&family=Outfit:wght@500;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <div class="global-sparkle sparkle-a" aria-hidden="true">✦</div>
+      <div class="global-sparkle sparkle-b" aria-hidden="true">✹</div>
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="ODIN accueil">
+          <span class="brand-mark">⚡</span>
+          <span class="brand-name">ODIN</span>
+          <span class="brand-tag">BATTLE ARENA</span>
+        </a>
+        <div class="room-pill"><span class="live-dot"></span> SALON <strong>#FJORD-72</strong></div>
+        <div class="top-actions">
+          <button class="icon-button" id="soundToggle" type="button" aria-label="Activer ou couper le son">🔊</button>
+          <button class="avatar-button" type="button" aria-label="Ouvrir le profil de Sacha">S</button>
+        </div>
+      </header>
+
+      <main class="game-layout">
+        <section class="game-column">
+          <div class="game-heading">
+            <div>
+              <p class="eyebrow pink">PARTIE CLASSÉE <span>•</span> MANCHE 04</p>
+              <h1>À qui le <span>Valhalla</span> ?</h1>
+              <p class="subline">Pose tes cartes, vole la vedette. Le dernier mot appartient au plus malin.</p>
+            </div>
+            <button class="rules-button" id="rulesButton" type="button">⌘ <span>Règles express</span></button>
+          </div>
+
+          <div class="status-strip">
+            <div class="turn-status"><span class="turn-pulse"></span><strong>À TOI DE JOUER</strong><span>•</span><span id="turnTimer">00:42</span></div>
+            <div class="round-progress" aria-label="Progression de la manche"><span style="width: 62%"></span></div>
+            <div class="round-label">MANCHE <strong>4</strong> / 6</div>
+          </div>
+
+          <div class="board-wrap">
+            <div class="board-decoration rune-one" aria-hidden="true">ᚦ</div>
+            <div class="board-decoration rune-two" aria-hidden="true">ᛟ</div>
+            <div class="board">
+              <div class="board-topline"><span>TABLE CENTRALE</span><span>PISTE DE GLORY <b>✦ 18</b></span></div>
+              <div class="played-area" id="playedArea" aria-live="polite">
+                <div class="empty-board">
+                  <span class="empty-icon">🪓</span>
+                  <strong>La piste est à toi</strong>
+                  <small>Joue une combinaison de 1 à 4 cartes</small>
+                </div>
+              </div>
+              <div class="board-footer"><span>⚔️ COMBO ACTUEL <strong id="comboValue">—</strong></span><span>PROCHAIN JOUEUR <strong>Inès</strong> →</span></div>
+            </div>
+          </div>
+
+          <section class="hand-section">
+            <div class="hand-heading">
+              <div><p class="eyebrow cyan">TON ARSENAL</p><h2>Ta main <span id="cardCount">(9 cartes)</span></h2></div>
+              <div class="hand-hint">Clique pour sélectionner <span>→</span> <strong>glisse pour réordonner</strong></div>
+            </div>
+            <div class="hand" id="hand" aria-label="Cartes dans votre main"></div>
+            <div class="hand-actions">
+              <button class="secondary-button" id="passButton" type="button">PASSER <span>↗</span></button>
+              <button class="primary-button" id="playButton" type="button" disabled>JOUER LA COMBO <span>⚡</span></button>
+            </div>
+          </section>
+        </section>
+
+        <aside class="sidebar">
+          <div class="players-card panel">
+            <div class="panel-heading"><h2>Les clans <span>⚡</span></h2><span class="player-count">4/4</span></div>
+            <div class="player-list">
+              <div class="player active"><div class="player-avatar avatar-pink">S</div><div class="player-info"><strong>Sacha <small>TOI</small></strong><span><i class="mini-dot pink-dot"></i> À ton tour</span></div><div class="score">18 <small>pts</small></div></div>
+              <div class="player"><div class="player-avatar avatar-yellow">I</div><div class="player-info"><strong>Inès</strong><span><i class="mini-dot yellow-dot"></i> Prête</span></div><div class="score">14 <small>pts</small></div></div>
+              <div class="player"><div class="player-avatar avatar-cyan">M</div><div class="player-info"><strong>Marcus</strong><span><i class="mini-dot cyan-dot"></i> Prête</span></div><div class="score">11 <small>pts</small></div></div>
+              <div class="player"><div class="player-avatar avatar-orange">L</div><div class="player-info"><strong>Léa</strong><span><i class="mini-dot orange-dot"></i> Prête</span></div><div class="score">09 <small>pts</small></div></div>
+            </div>
+          </div>
+
+          <div class="activity-card panel">
+            <div class="panel-heading"><h2>Le grimoire <span>✹</span></h2><button class="more-button" type="button" aria-label="Plus d'options">•••</button></div>
+            <div class="activity-list" id="activityList">
+              <div class="activity"><span class="activity-icon icon-yellow">⚡</span><p><strong>Inès</strong> a joué <b>3 cartes</b><small>Il y a 12 sec</small></p></div>
+              <div class="activity"><span class="activity-icon icon-cyan">✦</span><p><strong>Marcus</strong> a passé son tour<small>Il y a 28 sec</small></p></div>
+              <div class="activity"><span class="activity-icon icon-orange">🔥</span><p><strong>Léa</strong> a fait un <b>combo x2</b><small>Il y a 45 sec</small></p></div>
+            </div>
+            <button class="chat-button" id="chatButton" type="button">💬 <span>Écrire dans le chat</span><b>↵</b></button>
+          </div>
+          <div class="tip-card"><span>💡</span><p><strong>ASTUCE DE SKALD</strong><br />Garde tes petites cartes pour casser les combos adverses.</p></div>
+        </aside>
+      </main>
+      <footer class="footer"><span>ODIN / SAISON 01</span><span>Règles inspirées du jeu original • <button id="rulesFooter" type="button">Comment jouer ?</button></span><span>v.0.4.2</span></footer>
+    </div>
+
+    <dialog class="rules-modal" id="rulesModal">
+      <button class="modal-close" id="closeRules" type="button" aria-label="Fermer">×</button>
+      <p class="eyebrow yellow">LE SAVAIS-TU ?</p>
+      <h2>Les règles, <span>version éclair</span></h2>
+      <ol>
+        <li><b>Choisis</b> une ou plusieurs cartes de même valeur, ou une suite.</li>
+        <li><b>Bats</b> la combinaison au centre avec plus de cartes ou une valeur supérieure.</li>
+        <li><b>Passe</b> si tu préfères garder tes forces. Trois passes et la table se réinitialise.</li>
+        <li><b>Vide ta main</b> avant les autres pour devenir le Jarl du fjord.</li>
+      </ol>
+      <button class="primary-button modal-action" id="closeRulesAction" type="button">J'AI COMPRIS ⚔️</button>
+    </dialog>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
