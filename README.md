@@ -14,6 +14,19 @@ docker compose up --build -d
 
 Ouvrir [http://localhost:8090](http://localhost:8090).
 
+### Depuis VS Code
+
+Ouvrir [odin.code-workspace](./odin.code-workspace), puis utiliser la palette de commandes
+(`Ctrl+Shift+P`) :
+
+- `Tasks: Run Task` → `ODIN: démarrer Docker`
+- `Tasks: Run Task` → `ODIN: vérifier le service`
+- `Tasks: Run Task` → `ODIN: logs Docker`
+- `Tasks: Run Task` → `ODIN: arrêter Docker`
+
+Le projet peut aussi être ouvert directement comme dossier. Les tâches VS Code sont disponibles
+dans [.vscode/tasks.json](./.vscode/tasks.json).
+
 Le mapping utilise le port `8090` côté machine, car `8080` peut déjà être utilisé.
 
 ## Arrêter
