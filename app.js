@@ -93,7 +93,7 @@ function updatePlayButton() {
   const count = state.selected.size;
   const isMyTurn = state.room?.currentPlayerId === state.playerId;
   const pickupRequired = Boolean(state.room?.table && state.hand.length > count && !state.pickupCardId);
-  $("#playButton").disabled = !count || !isMyTurn || pickupRequired;
+  $("#playButton").disabled = !count || !isMyTurn;
   $("#passButton").disabled = !isMyTurn;
   $("#playButton").innerHTML = pickupRequired ? "CHOISIS LA CARTE À RAMASSER <span>🫳</span>" : count ? `JOUER ${count} CARTE${count > 1 ? "S" : ""} <span>⚡</span>` : "JOUER LA COMBO <span>⚡</span>";
 }
@@ -185,7 +185,11 @@ socket.addEventListener("message", (event) => {
     $("#connectionStatus").textContent = "Dans le salon ✓";
     return;
   }
-  if (message.type === "state") { applyState(message.room, message.hand); return; }
+  if (message.type === "state") {
+    state.playerId = message.playerId;
+    applyState(message.room, message.hand);
+    return;
+  }
   if (message.type === "error") showToast(message.message);
 });
 
@@ -197,6 +201,10 @@ $("#loginForm").addEventListener("submit", (event) => {
 $("#startGameButton").addEventListener("click", () => send({ type: "start" }));
 $("#lobbyStartButton").addEventListener("click", () => send({ type: "start" }));
 $("#playButton").addEventListener("click", () => {
+  if (state.room?.table && state.hand.length > state.selected.size && !state.pickupCardId) {
+    showToast("Clique d'abord sur une carte de la table pour la ramasser 🫳");
+    return;
+  }
   send({ type: "play", cardIds: [...state.selected], pickupCardId: state.pickupCardId });
   state.selected.clear();
   state.pickupCardId = null;

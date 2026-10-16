@@ -56,7 +56,7 @@ function publicRoom(room) {
 }
 
 function syncRoom(room) {
-  room.players.forEach((player) => send(player.socket, { type: "state", room: publicRoom(room), hand: player.hand }));
+  room.players.forEach((player) => send(player.socket, { type: "state", playerId: player.id, room: publicRoom(room), hand: player.hand }));
 }
 
 function error(socket, message) {
