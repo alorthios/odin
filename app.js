@@ -68,6 +68,7 @@ function renderPlayers() {
   $("#lobbyScreenMessage").textContent = lobbyMessage;
   $("#lobbyPlayers").innerHTML = room.players.map((player) => `<span class="lobby-player-chip">${escapeHtml(player.name)}${player.host ? " ★" : ""}</span>`).join("");
   $("#lobbyStartButton").disabled = !canStart;
+  $("#leaveRoomButton").classList.remove("hidden");
   if (room.started) $("#lobbyScreen").classList.add("hidden");
   if (room.started) {
     $("#turnTimer").textContent = room.currentPlayerId === state.playerId ? formatRemaining(room.turnEndsAt) : "ATTENDS";
@@ -207,13 +208,30 @@ function renderWaitingRooms(rooms) {
   }
   list.innerHTML = rooms.map((room) => {
     const status = room.startingAt ? "Lancement imminent" : `${room.playerCount}/${room.maxPlayers} joueurs`;
-    return `<button class="waiting-room-item" type="button" data-room-code="${escapeHtml(room.roomCode)}"><strong>#${escapeHtml(room.roomCode)}</strong><span>${status}</span><b>REJOINDRE</b></button>`;
+    const current = room.roomCode === state.roomCode && state.playerId;
+    return `<button class="waiting-room-item ${current ? "current" : ""}" type="button" data-room-code="${escapeHtml(room.roomCode)}" ${current ? "disabled" : ""}><strong>#${escapeHtml(room.roomCode)}</strong><span>${current ? "VOUS ÊTES ICI" : status}</span><b>${current ? "SALON ACTUEL" : "REJOINDRE"}</b></button>`;
   }).join("");
   list.querySelectorAll("[data-room-code]").forEach((button) => button.addEventListener("click", () => {
     $("#roomCodeInput").value = button.dataset.roomCode;
     $("#roomCodeInput").focus();
     showToast(`Salon #${button.dataset.roomCode} sélectionné`);
   }));
+}
+
+function resetLobby() {
+  state.playerId = null;
+  state.room = null;
+  state.hand = [];
+  state.selected.clear();
+  state.roomCode = "";
+  $("#roomCode").textContent = "—";
+  $("#lobbyRoomCode").textContent = "À CRÉER OU REJOINDRE";
+  $("#lobbyPlayers").innerHTML = "";
+  $("#lobbyMessage").textContent = "Connecte-toi pour rejoindre la partie.";
+  $("#lobbyScreenMessage").textContent = "Choisis un salon en attente ou crée-en un.";
+  $("#lobbyStartButton").disabled = true;
+  $("#leaveRoomButton").classList.add("hidden");
+  $("#connectionStatus").textContent = "Salon quitté ✓";
 }
 
 socket.addEventListener("open", () => { $("#connectionStatus").textContent = "Connexion sécurisée au fjord ✓"; });
@@ -223,6 +241,10 @@ socket.addEventListener("message", (event) => {
   if (message.type === "joined") {
     state.playerId = message.playerId;
     $("#connectionStatus").textContent = "Dans le salon ✓";
+    return;
+  }
+  if (message.type === "left") {
+    resetLobby();
     return;
   }
   if (message.type === "waiting-rooms") {
@@ -245,6 +267,7 @@ $("#loginForm").addEventListener("submit", (event) => {
 });
 $("#startGameButton").addEventListener("click", () => send({ type: "start" }));
 $("#lobbyStartButton").addEventListener("click", () => send({ type: "start" }));
+$("#leaveRoomButton").addEventListener("click", () => send({ type: "leave" }));
 $("#playButton").addEventListener("click", () => {
   send({ type: "play", cardIds: [...state.selected] });
   state.selected.clear();

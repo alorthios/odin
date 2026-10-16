@@ -96,6 +96,24 @@ function error(socket, message) {
   send(socket, { type: "error", message });
 }
 
+function removePlayer(socket) {
+  const room = rooms.get(socket.roomCode);
+  const player = room?.players.get(socket.playerId);
+  if (!room || !player) return false;
+  room.players.delete(player.id);
+  socket.playerId = null;
+  if (room.players.size > 0) {
+    if (player.host) room.players.values().next().value.host = true;
+    room.lastAction = `${player.name} a quitté le fjord.`;
+    syncRoom(room);
+  } else {
+    room.lastAction = "Le salon attend ses champions.";
+    scheduleEmptyRoom(room);
+  }
+  syncWaitingRooms();
+  return true;
+}
+
 function normalizeRoomCode(value) {
   return String(value || "").trim().toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 12);
 }
@@ -221,6 +239,7 @@ function advanceTurn(room) {
 
 function handleMessage(socket, message) {
   if (message.type === "join") {
+    if (socket.playerId) return error(socket, "Quitte d'abord ton salon actuel.");
     const name = String(message.name || "").trim().slice(0, 18);
     const requestedCode = normalizeRoomCode(message.roomCode);
     if (!requestedCode) return error(socket, "Saisis le code du salon à rejoindre ou à créer.");
@@ -248,6 +267,11 @@ function handleMessage(socket, message) {
   const room = rooms.get(socket.roomCode);
   const player = room?.players.get(socket.playerId);
   if (!player) return error(socket, "Rejoins le salon avant de jouer.");
+  if (message.type === "leave") {
+    if (room.started) return error(socket, "La partie a déjà commencé.");
+    if (!removePlayer(socket)) return error(socket, "Tu n'es dans aucun salon.");
+    return send(socket, { type: "left" });
+  }
   if (message.type === "start") {
     if (room.players.size < 2) return error(socket, "Il faut au moins 2 joueurs pour commencer.");
     if (room.startingAt) return error(socket, "Le lancement est déjà en cours.");
@@ -331,29 +355,18 @@ webSockets.on("connection", (socket) => {
     try { handleMessage(socket, JSON.parse(raw.toString())); } catch { error(socket, "Message invalide."); }
   });
   socket.on("close", () => {
-    const room = rooms.get(socket.roomCode);
     waitingSockets.delete(socket);
-    if (!room) {
-      return syncWaitingRooms();
-    }
+    if (!socket.playerId) return syncWaitingRooms();
+    const room = rooms.get(socket.roomCode);
+    if (!room) return syncWaitingRooms();
     const player = room.players.get(socket.playerId);
     if (!player) return syncWaitingRooms();
-    room.players.delete(player.id);
-    if (room.players.size === 0) {
-      room.lastAction = "Le salon attend ses champions.";
-      scheduleEmptyRoom(room);
-      syncWaitingRooms();
-      return;
-    }
-    if (player.host) room.players.values().next().value.host = true;
-    room.lastAction = `${player.name} a quitté le fjord.`;
-    if (room.startingAt && room.players.size < 2) {
+    if (room.startingAt && room.players.size <= 2) {
       clearTimeout(room.startTimer);
       room.startTimer = null;
       room.startingAt = null;
     }
-    syncRoom(room);
-    syncWaitingRooms();
+    removePlayer(socket);
   });
 });
 
