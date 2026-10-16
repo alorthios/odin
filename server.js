@@ -10,12 +10,13 @@ const maxPlayers = 6;
 const cardsPerPlayer = 9;
 const turnDurationMs = 60_000;
 const startCountdownMs = 5_000;
+const emptyRoomLifetimeMs = 10_000;
 const colors = ["pink", "yellow", "cyan", "orange", "violet", "lime"];
 const rooms = new Map();
 const waitingSockets = new Set();
 
 function createRoom(code) {
-  return { code, players: new Map(), started: false, startingAt: null, startTimer: null, round: 1, scores: new Map(), table: null, pendingPickup: null, currentPlayerId: null, turnEndsAt: null, turnTimer: null, passCount: 0, eventId: 0, event: null, chat: [], lastAction: "Le salon attend ses champions." };
+  return { code, players: new Map(), started: false, startingAt: null, startTimer: null, emptyTimer: null, round: 1, scores: new Map(), table: null, pendingPickup: null, currentPlayerId: null, turnEndsAt: null, turnTimer: null, passCount: 0, eventId: 0, event: null, chat: [], lastAction: "Le salon attend ses champions." };
 }
 
 function createDeck() {
@@ -78,6 +79,17 @@ function waitingRooms() {
 function syncWaitingRooms() {
   const message = { type: "waiting-rooms", rooms: waitingRooms() };
   waitingSockets.forEach((socket) => send(socket, message));
+}
+
+function scheduleEmptyRoom(room) {
+  if (room.emptyTimer || room.players.size > 0 || room.started) return;
+  room.emptyTimer = setTimeout(() => {
+    room.emptyTimer = null;
+    if (room.players.size === 0 && !room.started && rooms.get(room.code) === room) {
+      rooms.delete(room.code);
+      syncWaitingRooms();
+    }
+  }, emptyRoomLifetimeMs);
 }
 
 function error(socket, message) {
@@ -214,6 +226,10 @@ function handleMessage(socket, message) {
     if (!requestedCode) return error(socket, "Saisis le code du salon à rejoindre ou à créer.");
     if (!/^[A-Z0-9-]{4,12}$/.test(requestedCode)) return error(socket, "Le PIN du salon doit contenir 4 à 12 caractères.");
     const room = rooms.get(requestedCode) || createRoom(requestedCode);
+    if (room.emptyTimer) {
+      clearTimeout(room.emptyTimer);
+      room.emptyTimer = null;
+    }
     if (name.length < 2) return error(socket, "Choisis un pseudo de 2 caractères minimum.");
     if (room.started || room.startingAt) return error(socket, "Le lancement de la partie est déjà confirmé.");
     if (room.players.size >= maxPlayers) return error(socket, "Le salon est complet.");
@@ -325,6 +341,7 @@ webSockets.on("connection", (socket) => {
     room.players.delete(player.id);
     if (room.players.size === 0) {
       room.lastAction = "Le salon attend ses champions.";
+      scheduleEmptyRoom(room);
       syncWaitingRooms();
       return;
     }
