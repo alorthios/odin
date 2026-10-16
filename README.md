@@ -27,6 +27,29 @@ Ouvrir [odin.code-workspace](./odin.code-workspace), puis utiliser la palette de
 Le projet peut aussi être ouvert directement comme dossier. Les tâches VS Code sont disponibles
 dans [.vscode/tasks.json](./.vscode/tasks.json).
 
+## Lancer dans GitHub Codespaces et partager la partie
+
+1. Ouvrir le dépôt [alorthios/odin](https://github.com/alorthios/odin).
+2. Cliquer sur `Code` → `Codespaces` → `Create codespace on main`.
+3. Attendre la création du Codespace. La configuration dans
+   [.devcontainer/devcontainer.json](./.devcontainer/devcontainer.json) installe automatiquement Node.js et les dépendances.
+4. Dans le terminal du Codespace, lancer :
+
+   ```bash
+   npm start
+   ```
+
+5. Dans l’onglet `PORTS`, repérer le port `8080`, faire clic droit dessus et choisir
+   `Port Visibility` → `Public`.
+6. Copier l’URL transférée du port `8080` et la partager aux joueurs.
+
+Les joueurs n’ont pas besoin d’un compte GitHub ni d’un Codespace : ils ouvrent simplement
+le lien public dans leur navigateur. Le serveur WebSocket utilise automatiquement le même
+domaine que la page.
+
+Pour arrêter le serveur, utiliser `Ctrl+C` dans le terminal. Pour arrêter le Codespace,
+ouvrir le menu `...` du Codespace depuis GitHub et choisir `Stop codespace`.
+
 Le mapping utilise le port `8090` côté machine, car `8080` peut déjà être utilisé.
 
 ## Arrêter

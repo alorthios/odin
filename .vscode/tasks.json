@@ -9,6 +9,24 @@
       "group": "build"
     },
     {
+      "label": "ODIN: démarrer le serveur Codespace",
+      "type": "shell",
+      "command": "npm start",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "odin",
+        "pattern": {
+          "regexp": "^.*$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "ODIN server listening",
+          "endsPattern": "ODIN server listening"
+        }
+      },
+      "group": "build"
+    },
+    {
       "label": "ODIN: arrêter Docker",
       "type": "shell",
       "command": "docker compose down",
