@@ -152,6 +152,7 @@ function startGame(room) {
   room.startingAt = Date.now() + startCountdownMs;
   room.lastAction = "Le lancement est confirmé. La bataille commence dans 5 secondes.";
   syncRoom(room);
+  syncWaitingRooms();
   room.startTimer = setTimeout(() => {
     room.startTimer = null;
     room.startingAt = null;
@@ -171,6 +172,7 @@ function beginGame(room) {
   room.lastAction = "La manche 1 commence. Le premier joueur ouvre.";
   setEvent(room, "round-start", { round: room.round });
   syncRoom(room);
+  syncWaitingRooms();
 }
 
 function finishRound(room, winner) {
@@ -221,7 +223,6 @@ function handleMessage(socket, message) {
     room.players.set(id, player);
     socket.playerId = id;
     socket.roomCode = requestedCode;
-    waitingSockets.delete(socket);
     rooms.set(requestedCode, room);
     send(socket, { type: "joined", playerId: id, roomCode: requestedCode });
     room.lastAction = `${name} a rejoint le fjord.`;
@@ -322,7 +323,11 @@ webSockets.on("connection", (socket) => {
     const player = room.players.get(socket.playerId);
     if (!player) return syncWaitingRooms();
     room.players.delete(player.id);
-    if (room.players.size === 0) { rooms.delete(socket.roomCode); return syncWaitingRooms(); }
+    if (room.players.size === 0) {
+      room.lastAction = "Le salon attend ses champions.";
+      syncWaitingRooms();
+      return;
+    }
     if (player.host) room.players.values().next().value.host = true;
     room.lastAction = `${player.name} a quitté le fjord.`;
     if (room.startingAt && room.players.size < 2) {

@@ -206,7 +206,7 @@ function renderWaitingRooms(rooms) {
     return;
   }
   list.innerHTML = rooms.map((room) => {
-    const status = room.startingAt ? "Lancement imminent" : `${room.playerCount}/${room.maxPlayers} joueur${room.playerCount > 1 ? "s" : ""}`;
+    const status = room.startingAt ? "Lancement imminent" : `${room.playerCount}/${room.maxPlayers} joueurs`;
     return `<button class="waiting-room-item" type="button" data-room-code="${escapeHtml(room.roomCode)}"><strong>#${escapeHtml(room.roomCode)}</strong><span>${status}</span><b>REJOINDRE</b></button>`;
   }).join("");
   list.querySelectorAll("[data-room-code]").forEach((button) => button.addEventListener("click", () => {
