@@ -124,7 +124,6 @@ function applyState(room, hand) {
   state.pickupCardId = null;
   state.roomCode = room.roomCode;
   $("#roomCode").textContent = `#${room.roomCode}`;
-  $("#lobbyRoomCode").textContent = `#${room.roomCode}`;
   renderPlayers();
   renderHand();
   renderTable();
@@ -209,7 +208,7 @@ function renderWaitingRooms(rooms) {
   list.innerHTML = rooms.map((room) => {
     const status = room.startingAt ? "Lancement imminent" : `${room.playerCount}/${room.maxPlayers} joueurs`;
     const current = room.roomCode === state.roomCode && state.playerId;
-    return `<button class="waiting-room-item ${current ? "current" : ""}" type="button" data-room-code="${escapeHtml(room.roomCode)}" ${current ? "disabled" : ""}><strong>#${escapeHtml(room.roomCode)}</strong><span>${current ? "VOUS ÊTES ICI" : status}</span><b>${current ? "SALON ACTUEL" : "REJOINDRE"}</b></button>`;
+    return `<button class="waiting-room-item ${current ? "current" : ""}" type="button" data-room-code="${escapeHtml(room.roomCode)}" ${current ? "disabled" : ""}><strong>#${escapeHtml(room.roomCode)}</strong><span>${current ? "VOUS ÊTES ICI" : status}</span><b>${current ? "DANS CE SALON" : "REJOINDRE"}</b></button>`;
   }).join("");
   list.querySelectorAll("[data-room-code]").forEach((button) => button.addEventListener("click", () => {
     const roomCode = button.dataset.roomCode;
@@ -234,13 +233,12 @@ function resetLobby() {
   state.selected.clear();
   state.roomCode = "";
   $("#roomCode").textContent = "—";
-  $("#lobbyRoomCode").textContent = "À CRÉER OU REJOINDRE";
   $("#lobbyPlayers").innerHTML = "";
-  $("#lobbyMessage").textContent = "Connecte-toi pour rejoindre la partie.";
+  $("#lobbyMessage").textContent = "Choisis un salon en attente ou crée-en un.";
   $("#lobbyScreenMessage").textContent = "Choisis un salon en attente ou crée-en un.";
   $("#lobbyStartButton").disabled = true;
   $("#leaveRoomButton").classList.add("hidden");
-  $("#connectionStatus").textContent = "Salon quitté ✓";
+  $("#connectionStatus").textContent = "Salon quitté — choisis un autre salon.";
 }
 
 socket.addEventListener("open", () => { $("#connectionStatus").textContent = "Connexion sécurisée au fjord ✓"; });

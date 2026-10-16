@@ -270,6 +270,14 @@ function handleMessage(socket, message) {
   if (message.type === "leave") {
     if (room.started) return error(socket, "La partie a déjà commencé.");
     if (!removePlayer(socket)) return error(socket, "Tu n'es dans aucun salon.");
+    if (room.startingAt && room.players.size < 2) {
+      clearTimeout(room.startTimer);
+      room.startTimer = null;
+      room.startingAt = null;
+      room.lastAction = "Lancement annulé : il faut au moins 2 joueurs.";
+      syncRoom(room);
+      syncWaitingRooms();
+    }
     return send(socket, { type: "left" });
   }
   if (message.type === "start") {
