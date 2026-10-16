@@ -19,15 +19,15 @@
           <h1>Entre dans le <span>fjord</span></h1>
           <p class="lobby-subtitle">Choisis ton pseudo, invite tes champions et sois le premier à vider ta main.</p>
           <form class="login-form" id="loginForm">
-            <label for="roomPin">PIN DU SALON</label>
-            <div class="room-pin-row"><input id="roomPin" name="roomPin" value="FJORD-72" maxlength="12" pattern="[A-Za-z0-9-]{4,12}" required /><span>4–12 caractères</span></div>
+            <label for="roomCodeInput">CODE DU SALON</label>
+            <div class="room-pin-row"><input id="roomCodeInput" name="roomCode" value="FJORD-72" maxlength="12" pattern="[A-Za-z0-9-]{4,12}" required /><span>ex. FJORD-72</span></div>
             <label for="nickname">TON PSEUDO</label>
             <div class="login-row"><input id="nickname" name="nickname" maxlength="18" minlength="2" autocomplete="nickname" required /><button class="primary-button" type="submit">REJOINDRE ⚔️</button></div>
           </form>
           <div class="lobby-room"><span class="live-dot"></span> SALON <strong id="lobbyRoomCode">#FJORD-72</strong><span class="lobby-room-note">2 à 6 joueurs</span></div>
           <div class="lobby-players" id="lobbyPlayers"></div>
           <p class="lobby-message" id="lobbyScreenMessage">Connecte-toi pour rejoindre la partie.</p>
-          <button class="primary-button lobby-launch" id="lobbyStartButton" type="button" disabled>LANCER LA PARTIE ⚡</button>
+          <button class="primary-button lobby-launch" id="lobbyStartButton" type="button" disabled>LANCER LA PARTIE DANS CE SALON ⚡</button>
           <p class="connection-status" id="connectionStatus">Connexion au fjord…</p>
         </div>
       </section>

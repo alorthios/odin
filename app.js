@@ -218,7 +218,7 @@ socket.addEventListener("message", (event) => {
 $("#loginForm").addEventListener("submit", (event) => {
   event.preventDefault();
   state.name = $("#nickname").value.trim();
-  state.roomCode = $("#roomPin").value.trim().toUpperCase();
+  state.roomCode = $("#roomCodeInput").value.trim().toUpperCase();
   if (state.name.length >= 2) send({ type: "join", name: state.name, roomCode: state.roomCode });
 });
 $("#startGameButton").addEventListener("click", () => send({ type: "start" }));

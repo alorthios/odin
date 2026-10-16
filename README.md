@@ -52,12 +52,12 @@ ouvrir le menu `...` du Codespace depuis GitHub et choisir `Stop codespace`.
 
 Le mapping utilise le port `8090` côté machine, car `8080` peut déjà être utilisé.
 
-### Rejoindre un salon avec un PIN
+### Rejoindre un salon
 
-Sur l’écran d’accueil, chaque joueur saisit le même PIN de salon (4 à 12 caractères
-alphanumériques ou `-`) avant son pseudo. Un PIN inconnu crée automatiquement un nouveau
-salon ; un PIN existant rejoint le salon correspondant. Le code du salon reste affiché dans
-le bandeau et peut être partagé avec les autres joueurs.
+Sur l’écran d’accueil, chaque joueur saisit le même code de salon (4 à 12 caractères
+alphanumériques ou `-`, par exemple `FJORD-72`) avant son pseudo. Un code inconnu crée
+automatiquement un nouveau salon ; un code existant rejoint le salon correspondant. Le code
+du salon reste affiché dans le bandeau et peut être partagé avec les autres joueurs.
 
 ## Arrêter
 
@@ -86,7 +86,7 @@ Le résultat attendu est `ok`.
 
 ## État du projet
 
-Chaque salon accepte de 2 à 6 joueurs. Dès que 2 joueurs sont présents, n’importe lequel peut lancer la partie ; un compte à rebours synchronisé de 5 secondes laisse le temps à tous les écrans d’entrer dans l’arène. Les arrivées, départs et changements du lobby sont diffusés en temps réel à tous les joueurs. Chaque tour dure 60 secondes et le serveur distribue les cartes, valide les coups, les passes, les manches et le seuil de 15 points.
+Chaque salon accepte de 2 à 6 joueurs. Dès que 2 joueurs sont présents, n’importe lequel peut lancer la partie ; un compte à rebours synchronisé de 5 secondes laisse le temps à tous les écrans d’entrer dans l’arène. Les arrivées, départs et changements du salon sont diffusés en temps réel à tous les joueurs. Chaque tour dure 60 secondes et le serveur distribue les cartes, valide les coups, les passes, les manches et le seuil de 15 points.
 
 Le grimoire conserve une hauteur limitée avec défilement, affiche les activités et permet
 d’échanger des messages en temps réel. La liste des clans indique également le nombre de cartes
