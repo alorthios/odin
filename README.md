@@ -55,7 +55,8 @@ Le mapping utilise le port `8090` côté machine, car `8080` peut déjà être u
 ### Rejoindre un salon
 
 Sur l’écran d’accueil, chaque joueur saisit le même code de salon (4 à 12 caractères
-alphanumériques ou `-`, par exemple `FJORD-72`) avant son pseudo. Un code inconnu crée
+alphanumériques ou `-`, par exemple `FJORD-72`) avant son pseudo. Aucun salon n’est créé
+au démarrage du serveur : un code inconnu crée
 automatiquement un nouveau salon ; un code existant rejoint le salon correspondant. Le code
 du salon reste affiché dans le bandeau et peut être partagé avec les autres joueurs.
 

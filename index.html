@@ -20,7 +20,7 @@
           <p class="lobby-subtitle">Choisis ton pseudo, invite tes champions et sois le premier à vider ta main.</p>
           <form class="login-form" id="loginForm">
             <label for="roomCodeInput">CODE DU SALON</label>
-            <div class="room-pin-row"><input id="roomCodeInput" name="roomCode" value="FJORD-72" maxlength="12" pattern="[A-Za-z0-9-]{4,12}" required /><span>ex. FJORD-72</span></div>
+            <div class="room-pin-row"><input id="roomCodeInput" name="roomCode" placeholder="FJORD-72" maxlength="12" pattern="[A-Za-z0-9-]{4,12}" required /><span>ex. FJORD-72</span></div>
             <label for="nickname">TON PSEUDO</label>
             <div class="login-row"><input id="nickname" name="nickname" maxlength="18" minlength="2" autocomplete="nickname" required /><button class="primary-button" type="submit">REJOINDRE ⚔️</button></div>
           </form>
@@ -28,7 +28,7 @@
             <div class="waiting-rooms-heading"><span>⚔️ SALONS EN ATTENTE</span><small id="waitingRoomsStatus">Actualisation en direct</small></div>
             <div class="waiting-rooms-list" id="waitingRoomsList" aria-live="polite"><p class="waiting-rooms-empty">Recherche des salons disponibles…</p></div>
           </div>
-          <div class="lobby-room"><span class="live-dot"></span> SALON <strong id="lobbyRoomCode">#FJORD-72</strong><span class="lobby-room-note">2 à 6 joueurs</span></div>
+          <div class="lobby-room"><span class="live-dot"></span> SALON <strong id="lobbyRoomCode">À CRÉER OU REJOINDRE</strong><span class="lobby-room-note">2 à 6 joueurs</span></div>
           <div class="lobby-players" id="lobbyPlayers"></div>
           <p class="lobby-message" id="lobbyScreenMessage">Connecte-toi pour rejoindre la partie.</p>
           <button class="primary-button lobby-launch" id="lobbyStartButton" type="button" disabled>LANCER LA PARTIE DANS CE SALON ⚡</button>
@@ -43,7 +43,7 @@
           <span class="brand-name">ODIN</span>
           <span class="brand-tag">BATTLE ARENA</span>
         </a>
-        <div class="room-pill"><span class="live-dot"></span> SALON <strong id="roomCode">#FJORD-72</strong></div>
+        <div class="room-pill"><span class="live-dot"></span> SALON <strong id="roomCode">—</strong></div>
         <div class="top-actions">
           <button class="icon-button" id="soundToggle" type="button" aria-label="Activer ou couper le son">🔊</button>
           <button class="avatar-button" type="button" aria-label="Ouvrir le profil de Sacha">S</button>

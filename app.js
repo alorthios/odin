@@ -1,5 +1,5 @@
 const socket = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}`);
-const state = { playerId: null, room: null, hand: [], selected: new Set(), pickupCardId: null, name: "", roomCode: "FJORD-72", timer: null, lastEventId: 0, soundEnabled: true };
+const state = { playerId: null, room: null, hand: [], selected: new Set(), pickupCardId: null, name: "", roomCode: "", timer: null, lastEventId: 0, soundEnabled: true };
 const $ = (selector) => document.querySelector(selector);
 const send = (message) => socket.readyState === WebSocket.OPEN && socket.send(JSON.stringify(message));
 

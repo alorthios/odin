@@ -6,13 +6,12 @@ import { WebSocketServer } from "ws";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 const port = Number(process.env.PORT || 8080);
-const defaultRoomCode = "FJORD-72";
 const maxPlayers = 6;
 const cardsPerPlayer = 9;
 const turnDurationMs = 60_000;
 const startCountdownMs = 5_000;
 const colors = ["pink", "yellow", "cyan", "orange", "violet", "lime"];
-const rooms = new Map([[defaultRoomCode, createRoom(defaultRoomCode)]]);
+const rooms = new Map();
 const waitingSockets = new Set();
 
 function createRoom(code) {
@@ -211,7 +210,8 @@ function advanceTurn(room) {
 function handleMessage(socket, message) {
   if (message.type === "join") {
     const name = String(message.name || "").trim().slice(0, 18);
-    const requestedCode = normalizeRoomCode(message.roomCode) || defaultRoomCode;
+    const requestedCode = normalizeRoomCode(message.roomCode);
+    if (!requestedCode) return error(socket, "Saisis le code du salon à rejoindre ou à créer.");
     if (!/^[A-Z0-9-]{4,12}$/.test(requestedCode)) return error(socket, "Le PIN du salon doit contenir 4 à 12 caractères.");
     const room = rooms.get(requestedCode) || createRoom(requestedCode);
     if (name.length < 2) return error(socket, "Choisis un pseudo de 2 caractères minimum.");
