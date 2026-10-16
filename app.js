@@ -1,5 +1,5 @@
 const socket = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}`);
-const state = { playerId: null, room: null, hand: [], selected: new Set(), pickupCardId: null, name: "", timer: null, lastEventId: 0, soundEnabled: true };
+const state = { playerId: null, room: null, hand: [], selected: new Set(), pickupCardId: null, name: "", roomCode: "FJORD-72", timer: null, lastEventId: 0, soundEnabled: true };
 const $ = (selector) => document.querySelector(selector);
 const send = (message) => socket.readyState === WebSocket.OPEN && socket.send(JSON.stringify(message));
 
@@ -55,7 +55,7 @@ function renderPlayers() {
     const colors = ["pink", "yellow", "cyan", "orange", "violet", "pink"];
     return `<div class="player ${active ? "active" : ""}">
       <div class="player-avatar avatar-${colors[index]}">${player.name.slice(0, 1).toUpperCase()}</div>
-      <div class="player-info"><strong>${escapeHtml(player.name)} ${player.id === state.playerId ? "<small>TOI</small>" : ""}</strong><span><i class="mini-dot ${colors[index]}-dot"></i>${active ? "À son tour" : "Prête"}</span></div>
+      <div class="player-info"><strong>${escapeHtml(player.name)} ${player.id === state.playerId ? "<small>TOI</small>" : ""}</strong><span><i class="mini-dot ${colors[index]}-dot"></i>${active ? "À son tour" : "Prête"} · ${player.cardCount} carte${player.cardCount > 1 ? "s" : ""}</span></div>
       <div class="score">${String(player.score).padStart(2, "0")} <small>pts</small></div>
     </div>`;
   }).join("");
@@ -121,12 +121,23 @@ function applyState(room, hand) {
   state.hand = hand;
   state.selected.clear();
   state.pickupCardId = null;
+  state.roomCode = room.roomCode;
   $("#roomCode").textContent = `#${room.roomCode}`;
+  $("#lobbyRoomCode").textContent = `#${room.roomCode}`;
   renderPlayers();
   renderHand();
   renderTable();
+  renderGrimoire();
   if (room.lastAction && room.lastAction !== previousAction) {
     addActivity(room.lastAction);
+  }
+
+  function renderGrimoire() {
+    const list = $("#activityList");
+    const entries = state.room.chat.map((message) => `<div class="activity chat-entry"><span class="activity-icon icon-cyan">💬</span><p><strong>${escapeHtml(message.playerName)}</strong> ${escapeHtml(message.text)}<small>Message du salon</small></p></div>`);
+    if (state.room.lastAction) entries.unshift(`<div class="activity"><span class="activity-icon icon-yellow">⚡</span><p>${escapeHtml(state.room.lastAction)}<small>Activité du jeu</small></p></div>`);
+    list.innerHTML = entries.join("") || `<div class="activity"><span class="activity-icon icon-yellow">⚡</span><p>Le fjord attend les joueurs<small>À l'instant</small></p></div>`;
+    list.scrollTop = list.scrollHeight;
   }
   if (room.event && room.event.id > state.lastEventId) {
     state.lastEventId = room.event.id;
@@ -207,7 +218,8 @@ socket.addEventListener("message", (event) => {
 $("#loginForm").addEventListener("submit", (event) => {
   event.preventDefault();
   state.name = $("#nickname").value.trim();
-  if (state.name.length >= 2) send({ type: "join", name: state.name });
+  state.roomCode = $("#roomPin").value.trim().toUpperCase();
+  if (state.name.length >= 2) send({ type: "join", name: state.name, roomCode: state.roomCode });
 });
 $("#startGameButton").addEventListener("click", () => send({ type: "start" }));
 $("#lobbyStartButton").addEventListener("click", () => send({ type: "start" }));
@@ -217,7 +229,15 @@ $("#playButton").addEventListener("click", () => {
   state.pickupCardId = null;
 });
 $("#passButton").addEventListener("click", () => send({ type: "pass" }));
-$("#chatButton").addEventListener("click", () => showToast("Le chat arrive bientôt dans le fjord 💬"));
+$("#chatForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const input = $("#chatInput");
+  const text = input.value.trim();
+  if (!text) return;
+  send({ type: "chat", text });
+  input.value = "";
+  input.focus();
+});
 
 const rulesModal = $("#rulesModal");
 $("#rulesButton").addEventListener("click", () => rulesModal.showModal());

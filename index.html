@@ -19,10 +19,12 @@
           <h1>Entre dans le <span>fjord</span></h1>
           <p class="lobby-subtitle">Choisis ton pseudo, invite tes champions et sois le premier à vider ta main.</p>
           <form class="login-form" id="loginForm">
+            <label for="roomPin">PIN DU SALON</label>
+            <div class="room-pin-row"><input id="roomPin" name="roomPin" value="FJORD-72" maxlength="12" pattern="[A-Za-z0-9-]{4,12}" required /><span>4–12 caractères</span></div>
             <label for="nickname">TON PSEUDO</label>
             <div class="login-row"><input id="nickname" name="nickname" maxlength="18" minlength="2" autocomplete="nickname" required /><button class="primary-button" type="submit">REJOINDRE ⚔️</button></div>
           </form>
-          <div class="lobby-room"><span class="live-dot"></span> SALON <strong>#FJORD-72</strong><span class="lobby-room-note">2 à 6 joueurs</span></div>
+          <div class="lobby-room"><span class="live-dot"></span> SALON <strong id="lobbyRoomCode">#FJORD-72</strong><span class="lobby-room-note">2 à 6 joueurs</span></div>
           <div class="lobby-players" id="lobbyPlayers"></div>
           <p class="lobby-message" id="lobbyScreenMessage">Connecte-toi pour rejoindre la partie.</p>
           <button class="primary-button lobby-launch" id="lobbyStartButton" type="button" disabled>LANCER LA PARTIE ⚡</button>
@@ -103,10 +105,13 @@
 
           <div class="activity-card panel">
             <div class="panel-heading"><h2>Le grimoire <span>✹</span></h2><button class="more-button" type="button" aria-label="Plus d'options">•••</button></div>
-            <div class="activity-list" id="activityList">
+            <div class="activity-list" id="activityList" aria-live="polite">
               <div class="activity"><span class="activity-icon icon-yellow">⚡</span><p><strong>Le fjord</strong> attend les joueurs<small>À l'instant</small></p></div>
             </div>
-            <button class="chat-button" id="chatButton" type="button">💬 <span>Écrire dans le chat</span><b>↵</b></button>
+            <form class="chat-form" id="chatForm">
+              <input id="chatInput" maxlength="240" placeholder="Écrire dans le grimoire…" autocomplete="off" aria-label="Message de chat" />
+              <button class="chat-button" type="submit" aria-label="Envoyer le message">↵</button>
+            </form>
           </div>
           <div class="tip-card"><span>💡</span><p><strong>ASTUCE DE SKALD</strong><br />Garde tes petites cartes pour casser les combos adverses.</p></div>
         </aside>

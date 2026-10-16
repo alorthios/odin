@@ -6,16 +6,16 @@ import { WebSocketServer } from "ws";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 const port = Number(process.env.PORT || 8080);
-const roomCode = "FJORD-72";
+const defaultRoomCode = "FJORD-72";
 const maxPlayers = 6;
 const cardsPerPlayer = 9;
 const turnDurationMs = 60_000;
 const startCountdownMs = 5_000;
 const colors = ["pink", "yellow", "cyan", "orange", "violet", "lime"];
-const rooms = new Map([[roomCode, createRoom()]]);
+const rooms = new Map([[defaultRoomCode, createRoom(defaultRoomCode)]]);
 
-function createRoom() {
-  return { players: new Map(), started: false, startingAt: null, startTimer: null, round: 1, scores: new Map(), table: null, pendingPickup: null, currentPlayerId: null, turnEndsAt: null, turnTimer: null, passCount: 0, eventId: 0, event: null, lastAction: "Le salon attend ses champions." };
+function createRoom(code) {
+  return { code, players: new Map(), started: false, startingAt: null, startTimer: null, round: 1, scores: new Map(), table: null, pendingPickup: null, currentPlayerId: null, turnEndsAt: null, turnTimer: null, passCount: 0, eventId: 0, event: null, chat: [], lastAction: "Le salon attend ses champions." };
 }
 
 function createDeck() {
@@ -41,7 +41,7 @@ function broadcast(room, message) {
 
 function publicRoom(room) {
   return {
-    roomCode,
+    roomCode: room.code,
     started: room.started,
     startingAt: room.startingAt,
     round: room.round,
@@ -50,6 +50,7 @@ function publicRoom(room) {
     table: room.table ? { cards: room.table.cards, value: room.table.value, playerName: room.table.playerName } : null,
     pendingPickup: room.pendingPickup ? { playerId: room.pendingPickup.playerId, cards: room.pendingPickup.cards } : null,
     event: room.event,
+    chat: room.chat,
     lastAction: room.lastAction,
     players: [...room.players.values()].map((player) => ({
       id: player.id, name: player.name, ready: player.ready, host: player.host,
@@ -64,6 +65,15 @@ function syncRoom(room) {
 
 function error(socket, message) {
   send(socket, { type: "error", message });
+}
+
+function normalizeRoomCode(value) {
+  return String(value || "").trim().toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 12);
+}
+
+function addChat(room, player, text) {
+  room.chat.push({ id: crypto.randomUUID(), playerId: player.id, playerName: player.name, text, createdAt: Date.now() });
+  if (room.chat.length > 60) room.chat.shift();
 }
 
 function combinationValue(cards) {
@@ -179,9 +189,11 @@ function advanceTurn(room) {
 }
 
 function handleMessage(socket, message) {
-  const room = rooms.get(roomCode);
   if (message.type === "join") {
     const name = String(message.name || "").trim().slice(0, 18);
+    const requestedCode = normalizeRoomCode(message.roomCode) || defaultRoomCode;
+    if (!/^[A-Z0-9-]{4,12}$/.test(requestedCode)) return error(socket, "Le PIN du salon doit contenir 4 à 12 caractères.");
+    const room = rooms.get(requestedCode) || createRoom(requestedCode);
     if (name.length < 2) return error(socket, "Choisis un pseudo de 2 caractères minimum.");
     if (room.started || room.startingAt) return error(socket, "Le lancement de la partie est déjà confirmé.");
     if (room.players.size >= maxPlayers) return error(socket, "Le salon est complet.");
@@ -190,16 +202,25 @@ function handleMessage(socket, message) {
     const player = { id, name, socket, host: room.players.size === 0, ready: true, hand: [] };
     room.players.set(id, player);
     socket.playerId = id;
-    send(socket, { type: "joined", playerId: id, roomCode });
+    socket.roomCode = requestedCode;
+    rooms.set(requestedCode, room);
+    send(socket, { type: "joined", playerId: id, roomCode: requestedCode });
     room.lastAction = `${name} a rejoint le fjord.`;
     return syncRoom(room);
   }
-  const player = room.players.get(socket.playerId);
+  const room = rooms.get(socket.roomCode);
+  const player = room?.players.get(socket.playerId);
   if (!player) return error(socket, "Rejoins le salon avant de jouer.");
   if (message.type === "start") {
     if (room.players.size < 2) return error(socket, "Il faut au moins 2 joueurs pour commencer.");
     if (room.startingAt) return error(socket, "Le lancement est déjà en cours.");
     return startGame(room);
+  }
+  if (message.type === "chat") {
+    const text = String(message.text || "").trim().slice(0, 240);
+    if (!text) return error(socket, "Écris un message avant de l'envoyer.");
+    addChat(room, player, text);
+    return syncRoom(room);
   }
   if (!room.started) return error(socket, "La partie n'a pas encore commencé.");
   if (message.type === "pass") {
@@ -271,11 +292,12 @@ webSockets.on("connection", (socket) => {
     try { handleMessage(socket, JSON.parse(raw.toString())); } catch { error(socket, "Message invalide."); }
   });
   socket.on("close", () => {
-    const room = rooms.get(roomCode);
+    const room = rooms.get(socket.roomCode);
+    if (!room) return;
     const player = room.players.get(socket.playerId);
     if (!player) return;
     room.players.delete(player.id);
-    if (room.players.size === 0) { rooms.set(roomCode, createRoom()); return; }
+    if (room.players.size === 0) { rooms.delete(socket.roomCode); return; }
     if (player.host) room.players.values().next().value.host = true;
     room.lastAction = `${player.name} a quitté le fjord.`;
     if (room.startingAt && room.players.size < 2) {
