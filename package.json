@@ -1,0 +1,13 @@
+{
+  "name": "odin-battle-arena",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Jeu de cartes ODIN multijoueur en temps réel",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

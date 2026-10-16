@@ -12,6 +12,20 @@
   </head>
   <body>
     <div class="app-shell">
+      <section class="lobby-screen" id="lobbyScreen">
+        <div class="lobby-card">
+          <div class="lobby-brand"><span>⚡</span> ODIN</div>
+          <p class="eyebrow pink">BATTLE ARENA <span>•</span> SALON PRIVÉ</p>
+          <h1>Entre dans le <span>fjord</span></h1>
+          <p class="lobby-subtitle">Choisis ton pseudo, invite tes champions et sois le premier à vider ta main.</p>
+          <form class="login-form" id="loginForm">
+            <label for="nickname">TON PSEUDO</label>
+            <div class="login-row"><input id="nickname" name="nickname" maxlength="18" minlength="2" autocomplete="nickname" placeholder="Ex : Ragnar" required /><button class="primary-button" type="submit">REJOINDRE ⚔️</button></div>
+          </form>
+          <div class="lobby-room"><span class="live-dot"></span> SALON <strong>#FJORD-72</strong><span class="lobby-room-note">2 à 6 joueurs</span></div>
+          <p class="connection-status" id="connectionStatus">Connexion au fjord…</p>
+        </div>
+      </section>
       <div class="global-sparkle sparkle-a" aria-hidden="true">✦</div>
       <div class="global-sparkle sparkle-b" aria-hidden="true">✹</div>
       <header class="topbar">
@@ -20,7 +34,7 @@
           <span class="brand-name">ODIN</span>
           <span class="brand-tag">BATTLE ARENA</span>
         </a>
-        <div class="room-pill"><span class="live-dot"></span> SALON <strong>#FJORD-72</strong></div>
+        <div class="room-pill"><span class="live-dot"></span> SALON <strong id="roomCode">#FJORD-72</strong></div>
         <div class="top-actions">
           <button class="icon-button" id="soundToggle" type="button" aria-label="Activer ou couper le son">🔊</button>
           <button class="avatar-button" type="button" aria-label="Ouvrir le profil de Sacha">S</button>
@@ -76,20 +90,14 @@
         <aside class="sidebar">
           <div class="players-card panel">
             <div class="panel-heading"><h2>Les clans <span>⚡</span></h2><span class="player-count">4/4</span></div>
-            <div class="player-list">
-              <div class="player active"><div class="player-avatar avatar-pink">S</div><div class="player-info"><strong>Sacha <small>TOI</small></strong><span><i class="mini-dot pink-dot"></i> À ton tour</span></div><div class="score">18 <small>pts</small></div></div>
-              <div class="player"><div class="player-avatar avatar-yellow">I</div><div class="player-info"><strong>Inès</strong><span><i class="mini-dot yellow-dot"></i> Prête</span></div><div class="score">14 <small>pts</small></div></div>
-              <div class="player"><div class="player-avatar avatar-cyan">M</div><div class="player-info"><strong>Marcus</strong><span><i class="mini-dot cyan-dot"></i> Prête</span></div><div class="score">11 <small>pts</small></div></div>
-              <div class="player"><div class="player-avatar avatar-orange">L</div><div class="player-info"><strong>Léa</strong><span><i class="mini-dot orange-dot"></i> Prête</span></div><div class="score">09 <small>pts</small></div></div>
-            </div>
+            <div class="player-list" id="playerList"></div>
+            <div class="lobby-start"><p id="lobbyMessage">En attente de 3 joueurs minimum…</p><button class="primary-button" id="startGameButton" type="button" disabled>LANCER LA PARTIE ⚡</button></div>
           </div>
 
           <div class="activity-card panel">
             <div class="panel-heading"><h2>Le grimoire <span>✹</span></h2><button class="more-button" type="button" aria-label="Plus d'options">•••</button></div>
             <div class="activity-list" id="activityList">
-              <div class="activity"><span class="activity-icon icon-yellow">⚡</span><p><strong>Inès</strong> a joué <b>3 cartes</b><small>Il y a 12 sec</small></p></div>
-              <div class="activity"><span class="activity-icon icon-cyan">✦</span><p><strong>Marcus</strong> a passé son tour<small>Il y a 28 sec</small></p></div>
-              <div class="activity"><span class="activity-icon icon-orange">🔥</span><p><strong>Léa</strong> a fait un <b>combo x2</b><small>Il y a 45 sec</small></p></div>
+              <div class="activity"><span class="activity-icon icon-yellow">⚡</span><p><strong>Le fjord</strong> attend les joueurs<small>À l'instant</small></p></div>
             </div>
             <button class="chat-button" id="chatButton" type="button">💬 <span>Écrire dans le chat</span><b>↵</b></button>
           </div>
@@ -104,10 +112,10 @@
       <p class="eyebrow yellow">LE SAVAIS-TU ?</p>
       <h2>Les règles, <span>version éclair</span></h2>
       <ol>
-        <li><b>Choisis</b> une ou plusieurs cartes de même valeur, ou une suite.</li>
-        <li><b>Bats</b> la combinaison au centre avec plus de cartes ou une valeur supérieure.</li>
+        <li><b>Joue</b> une combinaison de même couleur ou de même valeur.</li>
+        <li><b>Bats</b> la combinaison au centre avec le même nombre de cartes, ou une de plus, et une valeur supérieure.</li>
         <li><b>Passe</b> si tu préfères garder tes forces. Trois passes et la table se réinitialise.</li>
-        <li><b>Vide ta main</b> avant les autres pour devenir le Jarl du fjord.</li>
+        <li><b>Vide ta main</b> avant les autres. Les cartes restantes donnent des points ; à 15 points, la partie s'arrête.</li>
       </ol>
       <button class="primary-button modal-action" id="closeRulesAction" type="button">J'AI COMPRIS ⚔️</button>
     </dialog>

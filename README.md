@@ -1,6 +1,6 @@
 # ODIN — Battle Arena
 
-Interface web responsive inspirée du jeu de cartes ODIN, servie par Nginx dans Docker.
+Interface web responsive inspirée du jeu de cartes ODIN, avec partie multijoueur temps réel via WebSocket.
 
 ## Prérequis
 
@@ -37,10 +37,10 @@ Le résultat attendu est `ok`.
 | `index.html` | Structure de l’interface |
 | `styles.css` | Design responsive et animations |
 | `app.js` | Interactions de la partie côté client |
-| `Dockerfile` | Image Nginx de production |
-| `nginx.conf` | Configuration du serveur statique |
+| `server.js` | Serveur HTTP, WebSocket et moteur de règles |
+| `Dockerfile` | Image Node de production |
 | `docker-compose.yml` | Lancement local du service |
 
 ## État du projet
 
-La version actuelle est un prototype jouable côté client. Les joueurs affichés sont simulés ; le multijoueur temps réel nécessitera un backend WebSocket ou un service équivalent.
+La room `FJORD-72` accepte de 2 à 6 joueurs. L’hôte doit attendre au moins 3 joueurs avant de lancer la partie. Le serveur distribue les cartes et valide les coups, les passes, les manches et le seuil de 15 points.

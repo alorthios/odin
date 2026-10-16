@@ -5,5 +5,5 @@ services:
       dockerfile: Dockerfile
     container_name: odin-arena
     ports:
-      - "8090:80"
+      - "8090:8080"
     restart: unless-stopped
