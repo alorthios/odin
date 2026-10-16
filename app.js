@@ -212,9 +212,18 @@ function renderWaitingRooms(rooms) {
     return `<button class="waiting-room-item ${current ? "current" : ""}" type="button" data-room-code="${escapeHtml(room.roomCode)}" ${current ? "disabled" : ""}><strong>#${escapeHtml(room.roomCode)}</strong><span>${current ? "VOUS ÊTES ICI" : status}</span><b>${current ? "SALON ACTUEL" : "REJOINDRE"}</b></button>`;
   }).join("");
   list.querySelectorAll("[data-room-code]").forEach((button) => button.addEventListener("click", () => {
-    $("#roomCodeInput").value = button.dataset.roomCode;
-    $("#roomCodeInput").focus();
-    showToast(`Salon #${button.dataset.roomCode} sélectionné`);
+    const roomCode = button.dataset.roomCode;
+    $("#roomCodeInput").value = roomCode;
+    const nickname = $("#nickname").value.trim();
+    if (nickname.length >= 2) {
+      state.name = nickname;
+      state.roomCode = roomCode;
+      send({ type: "join", name: nickname, roomCode });
+      showToast(`Connexion au salon #${roomCode}`);
+      return;
+    }
+    $("#nickname").focus();
+    showToast(`Salon #${roomCode} sélectionné — choisis ton pseudo`);
   }));
 }
 

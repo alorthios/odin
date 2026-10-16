@@ -243,7 +243,7 @@ function handleMessage(socket, message) {
     const name = String(message.name || "").trim().slice(0, 18);
     const requestedCode = normalizeRoomCode(message.roomCode);
     if (!requestedCode) return error(socket, "Saisis le code du salon à rejoindre ou à créer.");
-    if (!/^[A-Z0-9-]{4,12}$/.test(requestedCode)) return error(socket, "Le PIN du salon doit contenir 4 à 12 caractères.");
+    if (!/^[A-Z0-9-]{4,12}$/.test(requestedCode)) return error(socket, "Le code du salon doit contenir 4 à 12 caractères.");
     const room = rooms.get(requestedCode) || createRoom(requestedCode);
     if (room.emptyTimer) {
       clearTimeout(room.emptyTimer);

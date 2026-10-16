@@ -60,6 +60,11 @@ au démarrage du serveur : un code inconnu crée
 automatiquement un nouveau salon ; un code existant rejoint le salon correspondant. Le code
 du salon reste affiché dans le bandeau et peut être partagé avec les autres joueurs.
 
+Un salon sélectionné dans la liste est mis en avant comme salon actuel. Si le pseudo est déjà
+saisi, le bouton `REJOINDRE` connecte directement au salon ; sinon il sélectionne le code et
+demande le pseudo. Le bouton `QUITTER CE SALON` permet de revenir à la liste sans recharger la
+page.
+
 ## Arrêter
 
 ```powershell
