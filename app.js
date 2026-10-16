@@ -1,5 +1,5 @@
 const socket = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}`);
-const state = { playerId: null, room: null, hand: [], selected: new Set(), pickupCardId: null, name: "", timer: null };
+const state = { playerId: null, room: null, hand: [], selected: new Set(), pickupCardId: null, name: "", timer: null, lastEventId: 0, soundEnabled: true };
 const $ = (selector) => document.querySelector(selector);
 const send = (message) => socket.readyState === WebSocket.OPEN && socket.send(JSON.stringify(message));
 
@@ -17,6 +17,35 @@ function triggerEffect(className) {
   void element.offsetWidth;
   element.classList.add(className);
   setTimeout(() => element.classList.remove(className), 1200);
+}
+
+function playImpactSound(count) {
+  if (!state.soundEnabled) return;
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) return;
+  const context = new AudioContext();
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+  const now = context.currentTime;
+  const base = [180, 240, 320, 90, 55][Math.min(count, 5) - 1];
+  oscillator.type = count >= 4 ? "sawtooth" : "triangle";
+  oscillator.frequency.setValueAtTime(base, now);
+  oscillator.frequency.exponentialRampToValueAtTime(base * (count >= 4 ? 2.8 : 1.8), now + .18);
+  gain.gain.setValueAtTime(.0001, now);
+  gain.gain.exponentialRampToValueAtTime(count >= 4 ? .22 : .12, now + .015);
+  gain.gain.exponentialRampToValueAtTime(.0001, now + (count >= 4 ? .6 : .28));
+  oscillator.connect(gain).connect(context.destination);
+  oscillator.start(now);
+  oscillator.stop(now + (count >= 4 ? .65 : .32));
+  oscillator.addEventListener("ended", () => context.close(), { once: true });
+}
+
+function triggerPlayEffect(count) {
+  const tier = Math.min(count, 5);
+  triggerEffect(`play-tier-${tier}`);
+  playImpactSound(count);
+  const labels = ["Carte posée", "Double impact", "Combo sauvage", "MJOLNIR !", "RAGNARÖK !"];
+  showToast(`${labels[tier - 1]} — ${count} carte${count > 1 ? "s" : ""}`);
 }
 
 function renderPlayers() {
@@ -92,8 +121,14 @@ function applyState(room, hand) {
   renderTable();
   if (room.lastAction && room.lastAction !== previousAction) {
     addActivity(room.lastAction);
-    if (room.lastAction.includes("joue")) triggerEffect("card-play-effect");
-    if (room.lastAction.includes("remporte")) triggerEffect("victory-effect");
+  }
+  if (room.event && room.event.id > state.lastEventId) {
+    state.lastEventId = room.event.id;
+    if (room.event.type === "play") triggerPlayEffect(room.event.count);
+    if (room.event.type === "victory") {
+      triggerEffect("victory-effect");
+      showToast(`${room.event.winnerName} remporte la manche ! Scores mis à jour.`);
+    }
   }
   if (state.timer) clearInterval(state.timer);
   state.timer = setInterval(updateTimer, 250);
@@ -117,9 +152,10 @@ function updateTimer() {
     $("#playButton").disabled = true;
     $("#passButton").disabled = true;
   }
-  $("#roundLabel").textContent = `MANCHE ${room.round}`;
-  $("#roundNumber").textContent = room.round;
-  const nextPlayer = room.players.find((player) => player.id === room.currentPlayerId);
+  const currentRoom = state.room;
+  $("#roundLabel").textContent = `MANCHE ${currentRoom.round}`;
+  $("#roundNumber").textContent = currentRoom.round;
+  const nextPlayer = currentRoom.players.find((player) => player.id === currentRoom.currentPlayerId);
   $("#nextPlayer").textContent = nextPlayer ? escapeHtml(nextPlayer.name) : "—";
 }
 
@@ -169,6 +205,7 @@ $("#rulesFooter").addEventListener("click", () => rulesModal.showModal());
 $("#closeRules").addEventListener("click", () => rulesModal.close());
 $("#closeRulesAction").addEventListener("click", () => rulesModal.close());
 $("#soundToggle").addEventListener("click", (event) => {
-  event.currentTarget.textContent = event.currentTarget.textContent === "🔇" ? "🔊" : "🔇";
-  showToast(event.currentTarget.textContent === "🔇" ? "Son coupé" : "Son activé");
+  state.soundEnabled = !state.soundEnabled;
+  event.currentTarget.textContent = state.soundEnabled ? "🔊" : "🔇";
+  showToast(state.soundEnabled ? "Effets sonores activés" : "Effets sonores coupés");
 });

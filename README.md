@@ -46,3 +46,5 @@ Le résultat attendu est `ok`.
 La room `FJORD-72` accepte de 2 à 6 joueurs. L’hôte doit attendre au moins 2 joueurs avant de lancer la partie. Chaque tour dure 60 secondes et le serveur distribue les cartes, valide les coups, les passes, les manches et le seuil de 15 points.
 
 Lorsqu’une combinaison est déjà posée, le joueur actif choisit précisément la carte qu’il récupère. Pour ouvrir une table vide, il pose une carte, sauf s’il peut poser toute sa main en une combinaison valide. La piste et les commandes sont actives uniquement pendant le tour du joueur concerné.
+
+Les poses légales déclenchent des effets gradués selon le nombre de cartes (1 à 5+), avec Mjolnir à partir de 4 cartes et Ragnarök à partir de 5. Les effets sonores sont générés localement par le navigateur et peuvent être coupés. À la victoire d’une manche, chaque joueur perdant reçoit en pénalité le nombre de cartes restantes dans sa main ; les scores cumulés sont affichés dans le clan et la partie s’arrête à 15 points.

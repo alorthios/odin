@@ -14,7 +14,7 @@ const colors = ["pink", "yellow", "cyan", "orange", "violet", "lime"];
 const rooms = new Map([[roomCode, createRoom()]]);
 
 function createRoom() {
-  return { players: new Map(), started: false, round: 1, scores: new Map(), table: null, currentPlayerId: null, turnEndsAt: null, turnTimer: null, passCount: 0, lastAction: "Le salon attend ses champions." };
+  return { players: new Map(), started: false, round: 1, scores: new Map(), table: null, currentPlayerId: null, turnEndsAt: null, turnTimer: null, passCount: 0, eventId: 0, event: null, lastAction: "Le salon attend ses champions." };
 }
 
 function createDeck() {
@@ -46,6 +46,7 @@ function publicRoom(room) {
     currentPlayerId: room.currentPlayerId,
     turnEndsAt: room.turnEndsAt,
     table: room.table ? { cards: room.table.cards, value: room.table.value, playerName: room.table.playerName } : null,
+    event: room.event,
     lastAction: room.lastAction,
     players: [...room.players.values()].map((player) => ({
       id: player.id, name: player.name, ready: player.ready, host: player.host,
@@ -110,6 +111,10 @@ function dealRound(room) {
   scheduleTurn(room);
 }
 
+function setEvent(room, type, data = {}) {
+  room.event = { id: ++room.eventId, type, ...data };
+}
+
 function startGame(room) {
   if (room.players.size < 2) return;
   room.started = true;
@@ -117,26 +122,28 @@ function startGame(room) {
   room.players.forEach((player) => room.scores.set(player.id, 0));
   dealRound(room);
   room.lastAction = "La manche 1 commence. Le premier joueur ouvre.";
+  setEvent(room, "round-start", { round: room.round });
   syncRoom(room);
 }
 
-function nextPlayer(room) {
-  const ids = [...room.players.keys()];
-  const currentIndex = ids.indexOf(room.currentPlayerId);
-  room.currentPlayerId = ids[(currentIndex + 1) % ids.length];
-}
-
 function finishRound(room, winner) {
+  const penalties = {};
   room.players.forEach((player) => {
-    if (player.id !== winner.id) room.scores.set(player.id, (room.scores.get(player.id) || 0) + player.hand.length);
+    penalties[player.id] = player.id === winner.id ? 0 : player.hand.length;
+    if (player.id !== winner.id) room.scores.set(player.id, (room.scores.get(player.id) || 0) + penalties[player.id]);
   });
+  const penaltyText = [...room.players.values()]
+    .filter((player) => penalties[player.id] > 0)
+    .map((player) => `${player.name} +${penalties[player.id]}`)
+    .join(", ");
+  setEvent(room, "victory", { winnerId: winner.id, winnerName: winner.name, penalties, scores: Object.fromEntries(room.scores) });
   const gameOver = [...room.scores.values()].some((score) => score >= 15);
   if (gameOver) {
     room.started = false;
     clearTurnTimer(room);
     room.turnEndsAt = null;
     room.currentPlayerId = null;
-    room.lastAction = `${winner.name} remporte la manche. La partie est terminée.`;
+    room.lastAction = `${winner.name} remporte la manche. ${penaltyText || "Aucune pénalité"}. La partie est terminée.`;
     return;
   }
 
@@ -148,7 +155,14 @@ function finishRound(room, winner) {
   }
   room.round += 1;
   dealRound(room);
-  room.lastAction = `${winner.name} remporte la manche. Nouvelle distribution.`;
+  room.lastAction = `${winner.name} remporte la manche. ${penaltyText || "Aucune pénalité"}. Nouvelle distribution.`;
+}
+
+function advanceTurn(room) {
+  const ids = [...room.players.keys()];
+  const currentIndex = ids.indexOf(room.currentPlayerId);
+  room.currentPlayerId = ids[(currentIndex + 1) % ids.length];
+  scheduleTurn(room);
 }
 
 function handleMessage(socket, message) {
@@ -203,6 +217,7 @@ function handleMessage(socket, message) {
     room.passCount = 0;
     if (previousTable && player.hand.length > 0) player.hand.push(previousTable.cards.find((card) => card.id === pickupCardId));
     room.lastAction = `${player.name} joue ${cards.length} carte${cards.length > 1 ? "s" : ""}.`;
+    setEvent(room, "play", { playerId: player.id, playerName: player.name, count: cards.length });
     if (player.hand.length === 0) finishRound(room, player);
     else advanceTurn(room);
     return syncRoom(room);
