@@ -1,0 +1,31 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "ODIN: démarrer Docker",
+      "type": "shell",
+      "command": "docker compose up --build -d",
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "ODIN: arrêter Docker",
+      "type": "shell",
+      "command": "docker compose down",
+      "problemMatcher": []
+    },
+    {
+      "label": "ODIN: logs Docker",
+      "type": "shell",
+      "command": "docker compose logs -f --tail 100",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "ODIN: vérifier le service",
+      "type": "shell",
+      "command": "curl.exe -fsS http://localhost:8090/health",
+      "problemMatcher": []
+    }
+  ]
+}
