@@ -79,7 +79,7 @@ Le résultat attendu est `ok`.
 
 ## État du projet
 
-La room `FJORD-72` accepte de 2 à 6 joueurs. L’hôte doit attendre au moins 2 joueurs avant de lancer la partie. Chaque tour dure 60 secondes et le serveur distribue les cartes, valide les coups, les passes, les manches et le seuil de 15 points.
+La room `FJORD-72` accepte de 2 à 6 joueurs. Dès que 2 joueurs sont présents, n’importe lequel peut lancer la partie ; un compte à rebours synchronisé de 5 secondes laisse le temps à tous les écrans d’entrer dans l’arène. Les arrivées, départs et changements du lobby sont diffusés en temps réel à tous les joueurs. Chaque tour dure 60 secondes et le serveur distribue les cartes, valide les coups, les passes, les manches et le seuil de 15 points.
 
 Lorsqu’une combinaison est déjà posée, le joueur actif choisit précisément la carte qu’il récupère. Pour ouvrir une table vide, il pose une carte, sauf s’il peut poser toute sa main en une combinaison valide. La piste et les commandes sont actives uniquement pendant le tour du joueur concerné.
 

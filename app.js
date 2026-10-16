@@ -61,9 +61,9 @@ function renderPlayers() {
   }).join("");
   const me = room.players.find((player) => player.id === state.playerId);
   $(".player-count").textContent = `${room.players.length}/6`;
-  const canStart = Boolean(me?.host && room.players.length >= 2 && !room.started);
+  const canStart = Boolean(room.players.length >= 2 && !room.started && !room.startingAt);
   $("#startGameButton").disabled = !canStart;
-  const lobbyMessage = room.started ? "La partie est lancée !" : room.players.length < 2 ? "Encore 1 joueur pour commencer…" : me?.host ? "Vous pouvez lancer la partie !" : "En attente du lancement par l’hôte…";
+  const lobbyMessage = room.started ? "La partie est lancée !" : room.startingAt ? `Lancement dans ${formatStartCountdown(room.startingAt)}…` : room.players.length < 2 ? "Encore 1 joueur pour commencer…" : "N'importe quel joueur peut lancer la partie !";
   $("#lobbyMessage").textContent = lobbyMessage;
   $("#lobbyScreenMessage").textContent = lobbyMessage;
   $("#lobbyPlayers").innerHTML = room.players.map((player) => `<span class="lobby-player-chip">${escapeHtml(player.name)}${player.host ? " ★" : ""}</span>`).join("");
@@ -148,7 +148,13 @@ function formatRemaining(turnEndsAt) {
 }
 
 function updateTimer() {
-  if (!state.room?.started) return;
+  if (!state.room) return;
+  if (state.room.startingAt && !state.room.started) {
+    const countdown = `Lancement dans ${formatStartCountdown(state.room.startingAt)}…`;
+    $("#lobbyMessage").textContent = countdown;
+    $("#lobbyScreenMessage").textContent = countdown;
+  }
+  if (!state.room.started) return;
   const isMyTurn = state.room.currentPlayerId === state.playerId;
   const remaining = formatRemaining(state.room.turnEndsAt);
   $("#turnTimer").textContent = isMyTurn ? remaining : "ATTENDS";
@@ -157,6 +163,10 @@ function updateTimer() {
   if (isMyTurn && formatRemaining(state.room.turnEndsAt) === "00:00") {
     $("#playButton").disabled = true;
     $("#passButton").disabled = true;
+  }
+
+  function formatStartCountdown(startingAt) {
+    return Math.max(1, Math.ceil((startingAt - Date.now()) / 1000));
   }
   const currentRoom = state.room;
   $("#roundLabel").textContent = `MANCHE ${currentRoom.round}`;
