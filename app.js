@@ -92,9 +92,10 @@ function renderHand() {
 function updatePlayButton() {
   const count = state.selected.size;
   const isMyTurn = state.room?.currentPlayerId === state.playerId;
-  $("#playButton").disabled = !count || !isMyTurn || (state.room?.table && state.hand.length > count && !state.pickupCardId);
+  const pickupRequired = Boolean(state.room?.table && state.hand.length > count && !state.pickupCardId);
+  $("#playButton").disabled = !count || !isMyTurn || pickupRequired;
   $("#passButton").disabled = !isMyTurn;
-  $("#playButton").innerHTML = count ? `JOUER ${count} CARTE${count > 1 ? "S" : ""} <span>⚡</span>` : "JOUER LA COMBO <span>⚡</span>";
+  $("#playButton").innerHTML = pickupRequired ? "CHOISIS LA CARTE À RAMASSER <span>🫳</span>" : count ? `JOUER ${count} CARTE${count > 1 ? "S" : ""} <span>⚡</span>` : "JOUER LA COMBO <span>⚡</span>";
 }
 
 function renderTable() {
@@ -105,7 +106,7 @@ function renderTable() {
   $("#turnAxe").classList.toggle("visible", isMyTurn);
   $("#turnAxe").setAttribute("aria-hidden", String(!isMyTurn));
   $("#tableStatus").textContent = isMyTurn ? "À TOI DE JOUER" : table ? `TOUR DE ${table.playerName.toUpperCase()}` : "EN ATTENTE DU TOUR";
-  $("#playedArea").innerHTML = table ? `<div class="played-cards">${table.cards.map((card) => `<button class="card ${card.color}-card ${state.pickupCardId === card.id ? "selected" : ""}" data-pickup-id="${card.id}" type="button" ${isMyTurn ? "" : "disabled"}><span class="card-value">${card.value}</span><span class="card-suit">${symbol(card.color)}</span><span class="card-label">${escapeHtml(table.playerName)}</span></button>`).join("")}</div><p class="pickup-note">${isMyTurn && state.hand.length > state.selected.size ? "Choisis la carte de la combinaison précédente que tu ramasses." : "Combinaison posée par " + escapeHtml(table.playerName)}</p>` : `<div class="empty-board"><strong>Aucune combinaison posée</strong><small>${isMyTurn ? "C'est ton tour : ouvre avec une carte." : "En attente du premier joueur."}</small></div>`;
+  $("#playedArea").innerHTML = table ? `<div class="played-cards">${table.cards.map((card) => `<button class="card ${card.color}-card ${state.pickupCardId === card.id ? "selected" : ""}" data-pickup-id="${card.id}" type="button" aria-label="Ramasser la carte ${card.value}" ${isMyTurn ? "" : "disabled"}><span class="card-value">${card.value}</span><span class="card-suit">${symbol(card.color)}</span><span class="card-label">${state.pickupCardId === card.id ? "RAMASSÉE" : "RAMASSER"}</span></button>`).join("")}</div><p class="pickup-note">${isMyTurn && state.hand.length > state.selected.size ? "1. Sélectionne tes cartes  2. Clique une carte ci-dessus pour la ramasser  3. Joue la combo" : "Combinaison posée par " + escapeHtml(table.playerName)}</p>` : `<div class="empty-board"><strong>Aucune combinaison posée</strong><small>${isMyTurn ? "C'est ton tour : ouvre avec une carte." : "En attente du premier joueur."}</small></div>`;
   $("#playedArea").querySelectorAll("[data-pickup-id]").forEach((button) => button.addEventListener("click", () => {
     state.pickupCardId = button.dataset.pickupId;
     renderTable();

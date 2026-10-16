@@ -147,12 +147,6 @@ function finishRound(room, winner) {
     return;
   }
 
-  function advanceTurn(room) {
-    const ids = [...room.players.keys()];
-    const currentIndex = ids.indexOf(room.currentPlayerId);
-    room.currentPlayerId = ids[(currentIndex + 1) % ids.length];
-    scheduleTurn(room);
-  }
   room.round += 1;
   dealRound(room);
   room.lastAction = `${winner.name} remporte la manche. ${penaltyText || "Aucune pénalité"}. Nouvelle distribution.`;
