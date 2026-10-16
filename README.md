@@ -93,6 +93,9 @@ Le grimoire conserve une hauteur limitée avec défilement, affiche les activit�
 d’échanger des messages en temps réel. La liste des clans indique également le nombre de cartes
 restant dans la main de chaque joueur ; le serveur ne révèle jamais les cartes elles-mêmes.
 
+Un salon qui revient à `0/6 joueurs` reste visible 10 secondes pour laisser le temps à un
+nouveau joueur de le rejoindre, puis il est automatiquement retiré de la liste s’il reste vide.
+
 Lorsqu’une combinaison est déjà posée, le joueur actif choisit précisément la carte qu’il récupère. Pour ouvrir une table vide, il pose une carte, sauf s’il peut poser toute sa main en une combinaison valide. La piste et les commandes sont actives uniquement pendant le tour du joueur concerné.
 
 Les poses légales déclenchent des effets gradués selon le nombre de cartes (1 à 5+), avec Mjolnir à partir de 4 cartes et Ragnarök à partir de 5. Les effets sonores sont générés localement par le navigateur et peuvent être coupés. À la victoire d’une manche, chaque joueur perdant reçoit en pénalité le nombre de cartes restantes dans sa main ; les scores cumulés sont affichés dans le clan et la partie s’arrête à 15 points.
