@@ -92,25 +92,26 @@ function renderHand() {
 function updatePlayButton() {
   const count = state.selected.size;
   const isMyTurn = state.room?.currentPlayerId === state.playerId;
-  const pickupRequired = Boolean(state.room?.table && state.hand.length > count && !state.pickupCardId);
   $("#playButton").disabled = !count || !isMyTurn;
   $("#passButton").disabled = !isMyTurn;
-  $("#playButton").innerHTML = pickupRequired ? "CHOISIS LA CARTE À RAMASSER <span>🫳</span>" : count ? `JOUER ${count} CARTE${count > 1 ? "S" : ""} <span>⚡</span>` : "JOUER LA COMBO <span>⚡</span>";
+  $("#playButton").innerHTML = count ? `JOUER ${count} CARTE${count > 1 ? "S" : ""} <span>⚡</span>` : "JOUER LA COMBO <span>⚡</span>";
 }
 
 function renderTable() {
   const table = state.room.table;
+  const pendingPickup = state.room.pendingPickup;
+  const canPickup = pendingPickup?.playerId === state.playerId;
   $("#comboValue").textContent = table ? `x${table.cards.length} • ${table.value}` : "—";
   const isMyTurn = state.room.currentPlayerId === state.playerId;
   $(".board").classList.toggle("inactive-board", !isMyTurn);
   $("#turnAxe").classList.toggle("visible", isMyTurn);
   $("#turnAxe").setAttribute("aria-hidden", String(!isMyTurn));
   $("#tableStatus").textContent = isMyTurn ? "À TOI DE JOUER" : table ? `TOUR DE ${table.playerName.toUpperCase()}` : "EN ATTENTE DU TOUR";
-  $("#playedArea").innerHTML = table ? `<div class="played-cards">${table.cards.map((card) => `<button class="card ${card.color}-card ${state.pickupCardId === card.id ? "selected" : ""}" data-pickup-id="${card.id}" type="button" aria-label="Ramasser la carte ${card.value}" ${isMyTurn ? "" : "disabled"}><span class="card-value">${card.value}</span><span class="card-suit">${symbol(card.color)}</span><span class="card-label">${state.pickupCardId === card.id ? "RAMASSÉE" : "RAMASSER"}</span></button>`).join("")}</div><p class="pickup-note">${isMyTurn && state.hand.length > state.selected.size ? "1. Sélectionne tes cartes  2. Clique une carte ci-dessus pour la ramasser  3. Joue la combo" : "Combinaison posée par " + escapeHtml(table.playerName)}</p>` : `<div class="empty-board"><strong>Aucune combinaison posée</strong><small>${isMyTurn ? "C'est ton tour : ouvre avec une carte." : "En attente du premier joueur."}</small></div>`;
+  const tableCards = table ? `<div class="played-cards">${table.cards.map((card) => `<div class="card ${card.color}-card selected"><span class="card-value">${card.value}</span><span class="card-suit">${symbol(card.color)}</span><span class="card-label">${escapeHtml(table.playerName)}</span></div>`).join("")}</div>` : "";
+  const pickupCards = canPickup ? `<div class="pickup-cards">${pendingPickup.cards.map((card) => `<button class="card ${card.color}-card pickup-card" data-pickup-id="${card.id}" type="button" aria-label="Ramasser la carte ${card.value}"><span class="card-value">${card.value}</span><span class="card-suit">${symbol(card.color)}</span><span class="card-label">RAMASSER</span></button>`).join("")}</div><p class="pickup-note">Pose effectuée ! Choisis maintenant la carte que tu ramasses.</p>` : "";
+  $("#playedArea").innerHTML = table ? `${tableCards}${pickupCards}<p class="table-caption">${canPickup ? "Ta combinaison est posée sur la table." : "Combinaison posée par " + escapeHtml(table.playerName)}</p>` : `<div class="empty-board"><strong>Aucune combinaison posée</strong><small>${isMyTurn ? "C'est ton tour : ouvre avec une carte." : "En attente du premier joueur."}</small></div>`;
   $("#playedArea").querySelectorAll("[data-pickup-id]").forEach((button) => button.addEventListener("click", () => {
-    state.pickupCardId = button.dataset.pickupId;
-    renderTable();
-    updatePlayButton();
+    send({ type: "pickup", cardId: button.dataset.pickupId });
   }));
 }
 
@@ -201,11 +202,7 @@ $("#loginForm").addEventListener("submit", (event) => {
 $("#startGameButton").addEventListener("click", () => send({ type: "start" }));
 $("#lobbyStartButton").addEventListener("click", () => send({ type: "start" }));
 $("#playButton").addEventListener("click", () => {
-  if (state.room?.table && state.hand.length > state.selected.size && !state.pickupCardId) {
-    showToast("Clique d'abord sur une carte de la table pour la ramasser 🫳");
-    return;
-  }
-  send({ type: "play", cardIds: [...state.selected], pickupCardId: state.pickupCardId });
+  send({ type: "play", cardIds: [...state.selected] });
   state.selected.clear();
   state.pickupCardId = null;
 });

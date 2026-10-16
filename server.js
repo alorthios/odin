@@ -14,7 +14,7 @@ const colors = ["pink", "yellow", "cyan", "orange", "violet", "lime"];
 const rooms = new Map([[roomCode, createRoom()]]);
 
 function createRoom() {
-  return { players: new Map(), started: false, round: 1, scores: new Map(), table: null, currentPlayerId: null, turnEndsAt: null, turnTimer: null, passCount: 0, eventId: 0, event: null, lastAction: "Le salon attend ses champions." };
+  return { players: new Map(), started: false, round: 1, scores: new Map(), table: null, pendingPickup: null, currentPlayerId: null, turnEndsAt: null, turnTimer: null, passCount: 0, eventId: 0, event: null, lastAction: "Le salon attend ses champions." };
 }
 
 function createDeck() {
@@ -46,6 +46,7 @@ function publicRoom(room) {
     currentPlayerId: room.currentPlayerId,
     turnEndsAt: room.turnEndsAt,
     table: room.table ? { cards: room.table.cards, value: room.table.value, playerName: room.table.playerName } : null,
+    pendingPickup: room.pendingPickup ? { playerId: room.pendingPickup.playerId, cards: room.pendingPickup.cards } : null,
     event: room.event,
     lastAction: room.lastAction,
     players: [...room.players.values()].map((player) => ({
@@ -106,6 +107,7 @@ function dealRound(room) {
   const deck = shuffle(createDeck());
   room.players.forEach((player) => { player.hand = deck.splice(0, cardsPerPlayer); player.ready = true; });
   room.table = null;
+  room.pendingPickup = null;
   room.passCount = 0;
   room.currentPlayerId = [...room.players.keys()][0];
   scheduleTurn(room);
@@ -185,6 +187,7 @@ function handleMessage(socket, message) {
   if (!room.started) return error(socket, "La partie n'a pas encore commencé.");
   if (message.type === "pass") {
     if (room.currentPlayerId !== player.id) return error(socket, "Ce n'est pas ton tour.");
+    if (room.pendingPickup) return error(socket, "Ramasse d'abord une carte avant de terminer ton tour.");
     room.passCount += 1;
     room.lastAction = `${player.name} passe son tour.`;
     if (room.passCount >= room.players.size - 1 && room.table) {
@@ -197,23 +200,34 @@ function handleMessage(socket, message) {
   }
   if (message.type === "play") {
     if (room.currentPlayerId !== player.id) return error(socket, "Ce n'est pas ton tour.");
+    if (room.pendingPickup) return error(socket, "Choisis d'abord la carte que tu ramasses.");
     const ids = Array.isArray(message.cardIds) ? message.cardIds : [];
     const cards = ids.map((id) => player.hand.find((card) => card.id === id)).filter(Boolean);
     if (cards.length !== ids.length || new Set(ids).size !== ids.length) return error(socket, "Cette combinaison n'est pas dans ta main.");
     if (!isValidCombination(cards)) return error(socket, "Les cartes doivent être de même couleur ou de même valeur.");
     if (!room.table && cards.length !== 1 && cards.length !== player.hand.length) return error(socket, "Pour ouvrir, pose une carte ou toute ta main.");
     if (!canBeat(cards, room.table)) return error(socket, "Cette combinaison ne bat pas celle de la table.");
-    const pickupCardId = message.pickupCardId;
-    if (room.table && player.hand.length > cards.length && !room.table.cards.some((card) => card.id === pickupCardId)) return error(socket, "Choisis la carte à ramasser dans la combinaison précédente.");
     player.hand = player.hand.filter((card) => !ids.includes(card.id));
     const previousTable = room.table;
     room.table = { cards, value: combinationValue(cards), playerName: player.name };
     room.passCount = 0;
-    if (previousTable && player.hand.length > 0) player.hand.push(previousTable.cards.find((card) => card.id === pickupCardId));
     room.lastAction = `${player.name} joue ${cards.length} carte${cards.length > 1 ? "s" : ""}.`;
     setEvent(room, "play", { playerId: player.id, playerName: player.name, count: cards.length });
     if (player.hand.length === 0) finishRound(room, player);
-    else advanceTurn(room);
+    else if (previousTable) {
+      room.pendingPickup = { playerId: player.id, cards: previousTable.cards };
+    } else advanceTurn(room);
+    return syncRoom(room);
+  }
+  if (message.type === "pickup") {
+    if (!room.pendingPickup || room.pendingPickup.playerId !== player.id) return error(socket, "Aucune carte ne peut être ramassée maintenant.");
+    const picked = room.pendingPickup.cards.find((card) => card.id === message.cardId);
+    if (!picked) return error(socket, "Choisis une carte de la combinaison précédente.");
+    player.hand.push(picked);
+    room.pendingPickup = null;
+    room.lastAction = `${player.name} ramasse le ${picked.value}.`;
+    setEvent(room, "pickup", { playerId: player.id, playerName: player.name, card: picked });
+    advanceTurn(room);
     return syncRoom(room);
   }
   error(socket, "Action inconnue.");
