@@ -36,9 +36,8 @@
           </div>
           <div class="lobby-players" id="lobbyPlayers"></div>
           <p class="lobby-message" id="lobbyScreenMessage">Choisis un monde pour rejoindre une partie.</p>
-          <button class="primary-button lobby-launch" id="lobbyStartButton" type="button" disabled>LANCER LA PARTIE DANS CE MONDE ⚡</button>
-          <button class="leave-room-button hidden" id="leaveRoomButton" type="button">QUITTER LE MONDE</button>
-          <button class="leave-room-button change-identity-button" id="changeIdentityButton" type="button">CHANGER DE GUERRIER</button>
+          <button class="primary-button lobby-launch" id="lobbyStartButton" type="button" disabled><span>LANCER LA PARTIE DANS CE MONDE</span> <span>⚡</span></button>
+          <button class="leave-room-button change-identity-button" id="disconnectButton" type="button">DÉCONNEXION</button>
         </div>
       </section>
       <header class="topbar">
@@ -51,7 +50,6 @@
         <div class="top-actions">
           <button class="icon-button" id="soundToggle" type="button" aria-label="Activer ou couper le son">🔊</button>
           <button class="avatar-button" id="playerBadge" type="button" aria-label="Profil du guerrier"></button>
-          <button class="forfeit-button hidden" id="forfeitButton" type="button">DÉCLARER FORFAIT</button>
         </div>
       </header>
 
@@ -99,6 +97,7 @@
             </div>
             <div class="hand" id="hand" aria-label="Cartes dans votre main"></div>
             <div class="hand-actions">
+              <button class="secondary-button" id="disconnectGameButton" type="button">SE DÉCONNECTER</button>
               <button class="secondary-button" id="passButton" type="button">PASSER <span>↗</span></button>
               <button class="primary-button" id="playButton" type="button" disabled>JOUER LA COMBO <span>⚡</span></button>
             </div>

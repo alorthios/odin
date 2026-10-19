@@ -82,7 +82,7 @@ Chaque carte indique l’état du monde et son nombre de guerriers :
 - `OBSERVER` : la partie est en cours et ne peut plus être rejointe.
 
 Il n’existe aucune notion de chef. Tous les joueurs présents peuvent lancer la partie.
-`QUITTER LE MONDE` ramène à la carte sans recharger la page. Un monde vide reste visible
+`DÉCONNEXION` quitte le monde et revient à l’écran d’identité. Un monde vide reste visible
 quelques secondes avant de disparaître.
 
 ### 3. Entrer dans l’arène
@@ -92,7 +92,7 @@ peut lancer un compte à rebours synchronisé de 5 secondes. Les arrivées, dép
 sont diffusés à tous les écrans.
 
 Le pseudo du guerrier reste visible dans la barre supérieure. Pendant la partie, le bouton
-`DÉCLARER FORFAIT` permet de quitter après confirmation et de revenir à la carte des mondes.
+`SE DÉCONNECTER` quitte la partie après confirmation et revient à l’écran d’identité.
 
 ## Les règles du combat
 

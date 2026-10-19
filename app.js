@@ -68,7 +68,6 @@ function renderPlayers() {
   $("#lobbyScreenMessage").textContent = lobbyMessage;
   $("#lobbyPlayers").innerHTML = room.players.map((player) => `<span class="lobby-player-chip">${escapeHtml(player.name)}</span>`).join("");
   $("#lobbyStartButton").disabled = !canStart;
-  $("#leaveRoomButton").classList.remove("hidden");
   if (room.started) $("#lobbyScreen").classList.add("hidden");
   if (room.started) {
     $("#turnTimer").textContent = room.currentPlayerId === state.playerId ? formatRemaining(room.turnEndsAt) : "ATTENDS";
@@ -126,7 +125,6 @@ function applyState(room, hand) {
   $("#roomCode").textContent = `#${room.roomCode}`;
   $("#playerBadge").textContent = state.name;
   $("#playerBadge").setAttribute("aria-label", `Profil de ${state.name}`);
-  $("#forfeitButton").classList.toggle("hidden", !room.started);
   renderPlayers();
   renderHand();
   renderTable();
@@ -245,9 +243,7 @@ function resetLobby() {
   $("#lobbyMessage").textContent = "Choisis un monde en attente.";
   $("#lobbyScreenMessage").textContent = "Choisis un monde en attente.";
   $("#lobbyStartButton").disabled = true;
-  $("#leaveRoomButton").classList.add("hidden");
   $("#connectionStatus").textContent = "Monde quitté — choisis un autre monde.";
-  $("#forfeitButton").classList.add("hidden");
   $("#playerBadge").textContent = state.name;
   $("#worldsCard").classList.remove("hidden");
   if (nextRoomCode) {
@@ -281,6 +277,19 @@ socket.addEventListener("message", (event) => {
     resetLobby();
     return;
   }
+  if (message.type === "disconnected") {
+    state.authenticated = false;
+    state.playerId = null;
+    state.room = null;
+    state.roomCode = "";
+    state.name = "";
+    $("#worldsCard").classList.add("hidden");
+    $("#loginCard").classList.remove("hidden");
+    $("#playerBadge").textContent = "";
+    $("#nickname").value = "";
+    $("#nickname").focus();
+    return;
+  }
   if (message.type === "waiting-rooms") {
     renderWaitingRooms(message.rooms);
     return;
@@ -300,19 +309,11 @@ $("#loginForm").addEventListener("submit", (event) => {
 });
 $("#startGameButton").addEventListener("click", () => send({ type: "start" }));
 $("#lobbyStartButton").addEventListener("click", () => send({ type: "start" }));
-$("#leaveRoomButton").addEventListener("click", () => send({ type: "leave" }));
-$("#forfeitButton").addEventListener("click", () => {
-  if (window.confirm("Déclarer forfait et quitter la partie ?")) send({ type: "forfeit" });
-});
-$("#changeIdentityButton").addEventListener("click", () => {
-  send({ type: "leave" });
-  state.authenticated = false;
-  state.playerId = null;
-  state.name = "";
-  $("#worldsCard").classList.add("hidden");
-  $("#loginCard").classList.remove("hidden");
-  $("#nickname").focus();
-});
+function disconnect() {
+  if (window.confirm("Te déconnecter et quitter le monde ?")) send({ type: "disconnect" });
+}
+$("#disconnectButton").addEventListener("click", disconnect);
+$("#disconnectGameButton").addEventListener("click", disconnect);
 $("#playButton").addEventListener("click", () => {
   send({ type: "play", cardIds: [...state.selected] });
   state.selected.clear();

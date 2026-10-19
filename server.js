@@ -132,6 +132,18 @@ function removePlayer(socket, action = "a quitté le monde.") {
   return true;
 }
 
+function clearProfile(socket) {
+  const profile = socket.profile;
+  if (profile) {
+    profile.socket = null;
+    profile.roomCode = null;
+    profiles.delete(profileKey(profile.name));
+  }
+  socket.profile = null;
+  socket.playerId = null;
+  socket.roomCode = null;
+}
+
 function normalizeRoomCode(value) {
   return String(value || "").trim().toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 12);
 }
@@ -328,6 +340,36 @@ function handleMessage(socket, message) {
     syncRoom(room);
     return syncWaitingRooms();
   }
+  if (message.type === "disconnect") {
+    const room = rooms.get(socket.roomCode);
+    const player = room?.players.get(socket.playerId);
+    if (player) {
+      if (room.started) {
+        const wasCurrentPlayer = room.currentPlayerId === player.id;
+        if (!removePlayer(socket, "s'est déconnecté.")) return error(socket, "Impossible de se déconnecter.");
+        if (room.players.size < 2) {
+          clearTurnTimer(room);
+          room.started = false;
+          room.currentPlayerId = null;
+          room.turnEndsAt = null;
+          room.lastAction = "La partie est arrêtée : il ne reste plus assez de guerriers.";
+        } else if (wasCurrentPlayer) {
+          advanceTurn(room);
+        }
+        syncRoom(room);
+      } else {
+        if (!removePlayer(socket, "s'est déconnecté.")) return error(socket, "Impossible de se déconnecter.");
+        if (room.startingAt && room.players.size < 2) {
+          clearTimeout(room.startTimer);
+          room.startTimer = null;
+          room.startingAt = null;
+        }
+      }
+    }
+    clearProfile(socket);
+    syncWaitingRooms();
+    return send(socket, { type: "disconnected" });
+  }
   const room = rooms.get(socket.roomCode);
   const player = room?.players.get(socket.playerId);
   if (!player) return error(socket, "Rejoins le salon avant de jouer.");
@@ -342,24 +384,6 @@ function handleMessage(socket, message) {
       syncRoom(room);
       syncWaitingRooms();
     }
-    return send(socket, { type: "left" });
-  }
-  if (message.type === "forfeit") {
-    if (!room.started) return error(socket, "La partie n'a pas commencé.");
-    const wasCurrentPlayer = room.currentPlayerId === player.id;
-    room.pendingPickup = room.pendingPickup?.playerId === player.id ? null : room.pendingPickup;
-    if (!removePlayer(socket, "a déclaré forfait.")) return error(socket, "Impossible de quitter la partie.");
-    if (room.players.size < 2) {
-      clearTurnTimer(room);
-      room.started = false;
-      room.currentPlayerId = null;
-      room.turnEndsAt = null;
-      room.lastAction = "La partie est arrêtée : il ne reste pas assez de guerriers.";
-    } else if (wasCurrentPlayer) {
-      advanceTurn(room);
-    }
-    syncRoom(room);
-    syncWaitingRooms();
     return send(socket, { type: "left" });
   }
   if (message.type === "start") {
