@@ -283,10 +283,15 @@ socket.addEventListener("message", (event) => {
     state.room = null;
     state.roomCode = "";
     state.name = "";
+    state.hand = [];
+    state.selected.clear();
     $("#worldsCard").classList.add("hidden");
     $("#loginCard").classList.remove("hidden");
+    $("#lobbyScreen").classList.remove("hidden");
+    $("#roomCode").textContent = "—";
     $("#playerBadge").textContent = "";
     $("#nickname").value = "";
+    $("#connectionStatus").textContent = "Déconnecté — entre ton pseudo pour revenir.";
     $("#nickname").focus();
     return;
   }
