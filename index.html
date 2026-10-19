@@ -13,30 +13,34 @@
   <body>
     <div class="app-shell">
       <section class="lobby-screen" id="lobbyScreen">
-        <div class="lobby-card">
+        <div class="lobby-card" id="loginCard">
           <div class="lobby-brand"><span>⚡</span> ODIN</div>
-          <p class="eyebrow pink">BATTLE ARENA <span>•</span> SALON PRIVÉ</p>
-          <h1>Entre dans le <span>fjord</span></h1>
-          <p class="lobby-subtitle">Choisis ton pseudo, invite tes champions et sois le premier à vider ta main.</p>
+          <p class="eyebrow pink">BATTLE ARENA <span>•</span> IDENTITÉ DU GUERRIER</p>
+          <h1>Entre dans le <span>Valhalla</span></h1>
+          <p class="lobby-subtitle">Choisis ton nom de guerrier. Il doit être unique tant que tu es dans le Valhalla.</p>
           <form class="login-form" id="loginForm">
-            <label for="roomCodeInput">CODE DU SALON</label>
-            <div class="room-pin-row"><input id="roomCodeInput" name="roomCode" placeholder="FJORD-72" maxlength="12" pattern="[A-Za-z0-9-]{4,12}" required /><span>ex. FJORD-72</span></div>
             <label for="nickname">TON PSEUDO</label>
-            <div class="login-row"><input id="nickname" name="nickname" maxlength="18" minlength="2" autocomplete="nickname" required /><button class="primary-button" type="submit">REJOINDRE ⚔️</button></div>
+            <input id="nickname" name="nickname" maxlength="18" minlength="2" autocomplete="nickname" placeholder="EX. FREYJA" required />
+            <button class="primary-button login-submit" type="submit">ENTRER DANS LES MONDES ⚔️</button>
           </form>
+          <p class="connection-status" id="connectionStatus">Connexion aux mondes…</p>
+        </div>
+        <div class="lobby-card worlds-card hidden" id="worldsCard">
+          <div class="lobby-brand"><span>⚡</span> ODIN</div>
+          <p class="eyebrow pink">BATTLE ARENA <span>•</span> CARTE DES MONDES</p>
+          <h1>Choisis ton <span>monde</span></h1>
+          <p class="lobby-subtitle">Rejoins une partie en attente ou observe les guerriers déjà engagés. Une partie en cours ne peut pas être rejointe.</p>
           <div class="waiting-rooms">
-            <div class="waiting-rooms-heading"><span>⚔️ SALONS EN ATTENTE</span><small id="waitingRoomsStatus">Actualisation en direct</small></div>
-            <div class="waiting-rooms-list" id="waitingRoomsList" aria-live="polite"><p class="waiting-rooms-empty">Recherche des salons disponibles…</p></div>
+            <div class="waiting-rooms-heading"><span>⚔️ LES NEUF MONDES</span><small id="waitingRoomsStatus">Actualisation en direct</small></div>
+            <div class="waiting-rooms-list worlds-list" id="waitingRoomsList" aria-live="polite"><p class="waiting-rooms-empty">Recherche des mondes disponibles…</p></div>
           </div>
           <div class="lobby-players" id="lobbyPlayers"></div>
-          <p class="lobby-message" id="lobbyScreenMessage">Connecte-toi pour rejoindre la partie.</p>
-          <button class="primary-button lobby-launch" id="lobbyStartButton" type="button" disabled>LANCER LA PARTIE DANS CE SALON ⚡</button>
-          <button class="leave-room-button hidden" id="leaveRoomButton" type="button">QUITTER LE SALON</button>
-          <p class="connection-status" id="connectionStatus">Connexion au fjord…</p>
+          <p class="lobby-message" id="lobbyScreenMessage">Choisis un monde pour rejoindre une partie.</p>
+          <button class="primary-button lobby-launch" id="lobbyStartButton" type="button" disabled>LANCER LA PARTIE DANS CE MONDE ⚡</button>
+          <button class="leave-room-button hidden" id="leaveRoomButton" type="button">QUITTER LE MONDE</button>
+          <button class="leave-room-button change-identity-button" id="changeIdentityButton" type="button">CHANGER DE GUERRIER</button>
         </div>
       </section>
-      <div class="global-sparkle sparkle-a" aria-hidden="true">✦</div>
-      <div class="global-sparkle sparkle-b" aria-hidden="true">✹</div>
       <header class="topbar">
         <a class="brand" href="#" aria-label="ODIN accueil">
           <span class="brand-mark">⚡</span>
@@ -46,7 +50,8 @@
         <div class="room-pill"><span class="live-dot"></span> SALON <strong id="roomCode">—</strong></div>
         <div class="top-actions">
           <button class="icon-button" id="soundToggle" type="button" aria-label="Activer ou couper le son">🔊</button>
-          <button class="avatar-button" type="button" aria-label="Ouvrir le profil de Sacha">S</button>
+          <button class="avatar-button" id="playerBadge" type="button" aria-label="Profil du guerrier"></button>
+          <button class="forfeit-button hidden" id="forfeitButton" type="button">DÉCLARER FORFAIT</button>
         </div>
       </header>
 

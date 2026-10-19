@@ -1,5 +1,5 @@
 const socket = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}`);
-const state = { playerId: null, room: null, hand: [], selected: new Set(), pickupCardId: null, name: "", roomCode: "", timer: null, lastEventId: 0, soundEnabled: true };
+const state = { playerId: null, room: null, hand: [], selected: new Set(), pickupCardId: null, name: "", roomCode: "", authenticated: false, pendingRoomCode: null, timer: null, lastEventId: 0, soundEnabled: true };
 const $ = (selector) => document.querySelector(selector);
 const send = (message) => socket.readyState === WebSocket.OPEN && socket.send(JSON.stringify(message));
 
@@ -66,7 +66,7 @@ function renderPlayers() {
   const lobbyMessage = room.started ? "La partie est lancée !" : room.startingAt ? `Lancement dans ${formatStartCountdown(room.startingAt)}…` : room.players.length < 2 ? "Encore 1 joueur pour commencer…" : "N'importe quel joueur peut lancer la partie !";
   $("#lobbyMessage").textContent = lobbyMessage;
   $("#lobbyScreenMessage").textContent = lobbyMessage;
-  $("#lobbyPlayers").innerHTML = room.players.map((player) => `<span class="lobby-player-chip">${escapeHtml(player.name)}${player.host ? " ★" : ""}</span>`).join("");
+  $("#lobbyPlayers").innerHTML = room.players.map((player) => `<span class="lobby-player-chip">${escapeHtml(player.name)}</span>`).join("");
   $("#lobbyStartButton").disabled = !canStart;
   $("#leaveRoomButton").classList.remove("hidden");
   if (room.started) $("#lobbyScreen").classList.add("hidden");
@@ -124,6 +124,9 @@ function applyState(room, hand) {
   state.pickupCardId = null;
   state.roomCode = room.roomCode;
   $("#roomCode").textContent = `#${room.roomCode}`;
+  $("#playerBadge").textContent = state.name;
+  $("#playerBadge").setAttribute("aria-label", `Profil de ${state.name}`);
+  $("#forfeitButton").classList.toggle("hidden", !room.started);
   renderPlayers();
   renderHand();
   renderTable();
@@ -200,29 +203,31 @@ function escapeHtml(value) { return value.replace(/[&<>"']/g, (character) => ({ 
 
 function renderWaitingRooms(rooms) {
   const list = $("#waitingRoomsList");
-  $("#waitingRoomsStatus").textContent = `${rooms.length} salon${rooms.length > 1 ? "s" : ""} visible${rooms.length > 1 ? "s" : ""}`;
+  $("#waitingRoomsStatus").textContent = `${rooms.length} monde${rooms.length > 1 ? "s" : ""} visible${rooms.length > 1 ? "s" : ""}`;
   if (!rooms.length) {
-    list.innerHTML = `<p class="waiting-rooms-empty">Aucun salon en attente. Crée le tien avec un nouveau code.</p>`;
+    list.innerHTML = `<p class="waiting-rooms-empty">Aucun monde disponible pour le moment.</p>`;
     return;
   }
   list.innerHTML = rooms.map((room) => {
-    const status = room.startingAt ? "Lancement imminent" : `${room.playerCount}/${room.maxPlayers} joueurs`;
+    const status = room.started ? `Partie en cours · ${room.playerCount}/${room.maxPlayers}` : room.startingAt ? "Lancement imminent" : `${room.playerCount}/${room.maxPlayers} joueurs`;
     const current = room.roomCode === state.roomCode && state.playerId;
-    return `<button class="waiting-room-item ${current ? "current" : ""}" type="button" data-room-code="${escapeHtml(room.roomCode)}" ${current ? "disabled" : ""}><strong>#${escapeHtml(room.roomCode)}</strong><span>${current ? "VOUS ÊTES ICI" : status}</span><b>${current ? "DANS CE SALON" : "REJOINDRE"}</b></button>`;
+    const unavailable = room.started || room.startingAt;
+    return `<button class="waiting-room-item ${current ? "current" : ""} ${room.started ? "started" : ""}" type="button" data-room-code="${escapeHtml(room.roomCode)}" ${unavailable ? "disabled" : ""}><strong>${escapeHtml(room.worldName)}</strong><span>${current ? "VOUS ÊTES ICI" : status}</span><b>${current ? "MONDE ACTUEL" : room.started ? "OBSERVER" : "REJOINDRE"}</b><small>${escapeHtml(room.worldDescription)}</small></button>`;
   }).join("");
   list.querySelectorAll("[data-room-code]").forEach((button) => button.addEventListener("click", () => {
     const roomCode = button.dataset.roomCode;
-    $("#roomCodeInput").value = roomCode;
-    const nickname = $("#nickname").value.trim();
-    if (nickname.length >= 2) {
-      state.name = nickname;
-      state.roomCode = roomCode;
-      send({ type: "join", name: nickname, roomCode });
-      showToast(`Connexion au salon #${roomCode}`);
+    if (roomCode === state.roomCode && state.playerId) {
+      showToast("Tu es déjà dans ce monde.");
       return;
     }
-    $("#nickname").focus();
-    showToast(`Salon #${roomCode} sélectionné — choisis ton pseudo`);
+    if (state.roomCode && state.playerId) {
+      state.pendingRoomCode = roomCode;
+      send({ type: "leave" });
+      return;
+    }
+    state.roomCode = roomCode;
+    send({ type: "join", roomCode });
+    showToast(`Connexion au monde ${roomCode}`);
   }));
 }
 
@@ -232,22 +237,44 @@ function resetLobby() {
   state.hand = [];
   state.selected.clear();
   state.roomCode = "";
+  const nextRoomCode = state.pendingRoomCode;
+  state.pendingRoomCode = null;
+  state.authenticated = true;
   $("#roomCode").textContent = "—";
   $("#lobbyPlayers").innerHTML = "";
-  $("#lobbyMessage").textContent = "Choisis un salon en attente ou crée-en un.";
-  $("#lobbyScreenMessage").textContent = "Choisis un salon en attente ou crée-en un.";
+  $("#lobbyMessage").textContent = "Choisis un monde en attente.";
+  $("#lobbyScreenMessage").textContent = "Choisis un monde en attente.";
   $("#lobbyStartButton").disabled = true;
   $("#leaveRoomButton").classList.add("hidden");
-  $("#connectionStatus").textContent = "Salon quitté — choisis un autre salon.";
+  $("#connectionStatus").textContent = "Monde quitté — choisis un autre monde.";
+  $("#forfeitButton").classList.add("hidden");
+  $("#playerBadge").textContent = state.name;
+  $("#worldsCard").classList.remove("hidden");
+  if (nextRoomCode) {
+    state.roomCode = nextRoomCode;
+    send({ type: "join", roomCode: nextRoomCode });
+    showToast(`Connexion au monde ${nextRoomCode}`);
+  }
 }
 
-socket.addEventListener("open", () => { $("#connectionStatus").textContent = "Connexion sécurisée au fjord ✓"; });
-socket.addEventListener("close", () => { $("#connectionStatus").textContent = "Connexion perdue — recharge la page."; showToast("Connexion au salon interrompue."); });
+socket.addEventListener("open", () => { $("#connectionStatus").textContent = "Connexion sécurisée aux mondes ✓"; });
+socket.addEventListener("close", () => { $("#connectionStatus").textContent = "Connexion perdue — recharge la page."; showToast("Connexion au monde interrompue."); });
 socket.addEventListener("message", (event) => {
   const message = JSON.parse(event.data);
+  if (message.type === "authenticated") {
+    state.playerId = message.playerId;
+    state.name = message.name;
+    state.authenticated = true;
+    $("#playerBadge").textContent = state.name;
+    $("#playerBadge").setAttribute("aria-label", `Profil de ${state.name}`);
+    $("#loginCard").classList.add("hidden");
+    $("#worldsCard").classList.remove("hidden");
+    $("#connectionStatus").textContent = "Guerrier identifié ✓";
+    return;
+  }
   if (message.type === "joined") {
     state.playerId = message.playerId;
-    $("#connectionStatus").textContent = "Dans le salon ✓";
+    $("#connectionStatus").textContent = "Dans le monde ✓";
     return;
   }
   if (message.type === "left") {
@@ -269,12 +296,23 @@ socket.addEventListener("message", (event) => {
 $("#loginForm").addEventListener("submit", (event) => {
   event.preventDefault();
   state.name = $("#nickname").value.trim();
-  state.roomCode = $("#roomCodeInput").value.trim().toUpperCase();
-  if (state.name.length >= 2) send({ type: "join", name: state.name, roomCode: state.roomCode });
+  if (state.name.length >= 2) send({ type: "authenticate", name: state.name });
 });
 $("#startGameButton").addEventListener("click", () => send({ type: "start" }));
 $("#lobbyStartButton").addEventListener("click", () => send({ type: "start" }));
 $("#leaveRoomButton").addEventListener("click", () => send({ type: "leave" }));
+$("#forfeitButton").addEventListener("click", () => {
+  if (window.confirm("Déclarer forfait et quitter la partie ?")) send({ type: "forfeit" });
+});
+$("#changeIdentityButton").addEventListener("click", () => {
+  send({ type: "leave" });
+  state.authenticated = false;
+  state.playerId = null;
+  state.name = "";
+  $("#worldsCard").classList.add("hidden");
+  $("#loginCard").classList.remove("hidden");
+  $("#nickname").focus();
+});
 $("#playButton").addEventListener("click", () => {
   send({ type: "play", cardIds: [...state.selected] });
   state.selected.clear();

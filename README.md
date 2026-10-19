@@ -1,22 +1,39 @@
-# ODIN — Battle Arena
+# ODIN — La bataille des neuf mondes
 
-Interface web responsive inspirée du jeu de cartes ODIN, avec partie multijoueur temps réel via WebSocket.
+> Les dieux ont ouvert les portes du fjord.
+> Choisis ton nom, trouve ton monde et vide ta main avant tes rivaux.
 
-## Prérequis
+ODIN est une arène de cartes multijoueur en temps réel, jouable depuis un navigateur.
+Le serveur synchronise les mondes, les joueurs, les tours, les cartes, le chat et les scores
+via WebSocket.
 
-- Docker Desktop avec Docker Compose
+## Lancer l’arène
 
-## Démarrer
+### Docker Desktop
 
 ```powershell
 docker compose up --build -d
 ```
 
-Ouvrir [http://localhost:8090](http://localhost:8090).
+Puis ouvre [http://localhost:8090](http://localhost:8090).
+
+Pour vérifier que le fjord répond :
+
+```powershell
+curl.exe http://localhost:8090/health
+```
+
+Réponse attendue : `ok`.
+
+Pour fermer l’arène :
+
+```powershell
+docker compose down
+```
 
 ### Depuis VS Code
 
-Ouvrir [odin.code-workspace](./odin.code-workspace), puis utiliser la palette de commandes
+Ouvre [odin.code-workspace](./odin.code-workspace), puis utilise la palette de commandes
 (`Ctrl+Shift+P`) :
 
 - `Tasks: Run Task` → `ODIN: démarrer Docker`
@@ -24,83 +41,105 @@ Ouvrir [odin.code-workspace](./odin.code-workspace), puis utiliser la palette de
 - `Tasks: Run Task` → `ODIN: logs Docker`
 - `Tasks: Run Task` → `ODIN: arrêter Docker`
 
-Le projet peut aussi être ouvert directement comme dossier. Les tâches VS Code sont disponibles
-dans [.vscode/tasks.json](./.vscode/tasks.json).
+### GitHub Codespaces
 
-## Lancer dans GitHub Codespaces et partager la partie
+1. Ouvre le dépôt [alorthios/odin](https://github.com/alorthios/odin).
+2. Choisis `Code` → `Codespaces` → `Create codespace on main`.
+3. Lance `npm start`.
+4. Dans `PORTS`, rends le port `8080` public.
+5. Partage l’URL générée aux autres guerriers.
 
-1. Ouvrir le dépôt [alorthios/odin](https://github.com/alorthios/odin).
-2. Cliquer sur `Code` → `Codespaces` → `Create codespace on main`.
-3. Attendre la création du Codespace. La configuration dans
-   [.devcontainer/devcontainer.json](./.devcontainer/devcontainer.json) installe automatiquement Node.js et les dépendances.
-4. Dans le terminal du Codespace, lancer :
+Les joueurs n’ont besoin ni de compte GitHub ni de Codespace : un navigateur suffit.
 
-   ```bash
-   npm start
-   ```
+## Le parcours d’un guerrier
 
-5. Dans l’onglet `PORTS`, repérer le port `8080`, faire clic droit dessus et choisir
-   `Port Visibility` → `Public`.
-6. Copier l’URL transférée du port `8080` et la partager aux joueurs.
+### 1. Inscrire son nom
 
-Les joueurs n’ont pas besoin d’un compte GitHub ni d’un Codespace : ils ouvrent simplement
-le lien public dans leur navigateur. Le serveur WebSocket utilise automatiquement le même
-domaine que la page.
+La première fenêtre demande uniquement un pseudo de 2 à 18 caractères.
+Deux joueurs ne peuvent pas porter le même nom au même instant. Le nom redevient disponible
+quand la connexion précédente est terminée.
 
-Pour arrêter le serveur, utiliser `Ctrl+C` dans le terminal. Pour arrêter le Codespace,
-ouvrir le menu `...` du Codespace depuis GitHub et choisir `Stop codespace`.
+### 2. Choisir un monde
 
-Le mapping utilise le port `8090` côté machine, car `8080` peut déjà être utilisé.
+La carte affiche toujours les neuf mondes de la mythologie nordique :
 
-### Rejoindre un salon
+| Monde | Royaume |
+| --- | --- |
+| Asgard | Les dieux |
+| Midgard | Les humains |
+| Vanaheim | Les Vanes |
+| Jotunheim | Les géants |
+| Niflheim | Le brouillard et la glace |
+| Muspelheim | Le feu |
+| Alfheim | Les elfes lumineux |
+| Svartalfheim | Les nains |
+| Helheim | Les morts |
 
-Sur l’écran d’accueil, chaque joueur saisit le même code de salon (4 à 12 caractères
-alphanumériques ou `-`, par exemple `FJORD-72`) avant son pseudo. Aucun salon n’est créé
-au démarrage du serveur : un code inconnu crée
-automatiquement un nouveau salon ; un code existant rejoint le salon correspondant. Le code
-du salon reste affiché dans le bandeau et peut être partagé avec les autres joueurs.
+Chaque carte indique l’état du monde et son nombre de guerriers :
 
-Un salon sélectionné dans la liste est mis en avant comme salon actuel. Si le pseudo est déjà
-saisi, le bouton `REJOINDRE` connecte directement au salon ; sinon il sélectionne le code et
-demande le pseudo. Le bouton `QUITTER CE SALON` permet de revenir à la liste sans recharger la
-page.
+- `REJOINDRE` : la partie n’a pas commencé ;
+- `MONDE ACTUEL` : le guerrier est déjà présent ;
+- `OBSERVER` : la partie est en cours et ne peut plus être rejointe.
 
-## Arrêter
+Il n’existe aucune notion de chef. Tous les joueurs présents peuvent lancer la partie.
+`QUITTER LE MONDE` ramène à la carte sans recharger la page. Un monde vide reste visible
+quelques secondes avant de disparaître.
 
-```powershell
-docker compose down
-```
+### 3. Entrer dans l’arène
 
-## Vérifier le service
+Chaque monde accepte de 2 à 6 joueurs. Dès que deux guerriers sont présents, n’importe lequel
+peut lancer un compte à rebours synchronisé de 5 secondes. Les arrivées, départs et actions
+sont diffusés à tous les écrans.
 
-```powershell
-curl.exe http://localhost:8090/health
-```
+Le pseudo du guerrier reste visible dans la barre supérieure. Pendant la partie, le bouton
+`DÉCLARER FORFAIT` permet de quitter après confirmation et de revenir à la carte des mondes.
 
-Le résultat attendu est `ok`.
+## Les règles du combat
 
-## Structure
+- Une manche commence avec 9 cartes par joueur.
+- Une combinaison est composée de cartes de même couleur ou de même valeur.
+- Pour battre la table, il faut jouer le même nombre de cartes — ou une carte de plus — avec
+  une valeur supérieure.
+- Pour ouvrir une table vide, on joue une carte ou toute sa main si elle forme une combinaison.
+- Le joueur actif dispose de 60 secondes.
+- On peut passer ; lorsque tous les adversaires ont passé, la table est réinitialisée.
+- Lorsqu’une combinaison est battue, son auteur choisit précisément la carte qu’il ramasse.
+- Vider sa main remporte la manche.
+- Les cartes restantes des perdants deviennent des points de pénalité.
+- À 15 points, la partie s’arrête.
+
+Les poses déclenchent des effets gradués : Mjolnir apparaît à partir de 4 cartes et Ragnarök
+à partir de 5. Les sons sont générés localement par le navigateur et peuvent être coupés.
+
+## Le grimoire
+
+Le grimoire affiche les événements de la partie et permet aux guerriers d’échanger des messages
+en temps réel. La liste des clans montre le nombre de cartes restantes et les scores, sans jamais
+révéler les mains adverses.
+
+## Structure du projet
 
 | Fichier | Rôle |
 | --- | --- |
-| `index.html` | Structure de l’interface |
-| `styles.css` | Design responsive et animations |
-| `app.js` | Interactions de la partie côté client |
-| `server.js` | Serveur HTTP, WebSocket et moteur de règles |
+| `index.html` | Écrans d’identité, carte des mondes et arène |
+| `styles.css` | Direction artistique, responsive et animations |
+| `app.js` | Interface et interactions côté navigateur |
+| `server.js` | HTTP, WebSocket et moteur des règles |
 | `Dockerfile` | Image Node de production |
 | `docker-compose.yml` | Lancement local du service |
 
-## État du projet
+## Développement local sans Docker
 
-Chaque salon accepte de 2 à 6 joueurs. Dès que 2 joueurs sont présents, n’importe lequel peut lancer la partie ; un compte à rebours synchronisé de 5 secondes laisse le temps à tous les écrans d’entrer dans l’arène. Les arrivées, départs et changements du salon sont diffusés en temps réel à tous les joueurs. Chaque tour dure 60 secondes et le serveur distribue les cartes, valide les coups, les passes, les manches et le seuil de 15 points.
+Node.js et les dépendances installées sont nécessaires :
 
-Le grimoire conserve une hauteur limitée avec défilement, affiche les activités et permet
-d’échanger des messages en temps réel. La liste des clans indique également le nombre de cartes
-restant dans la main de chaque joueur ; le serveur ne révèle jamais les cartes elles-mêmes.
+```powershell
+npm install
+npm start
+```
 
-Un salon qui revient à `0/6 joueurs` reste visible 10 secondes pour laisser le temps à un
-nouveau joueur de le rejoindre, puis il est automatiquement retiré de la liste s’il reste vide.
+Le serveur écoute alors sur le port `8080`. La variable `PORT` permet de le modifier :
 
-Lorsqu’une combinaison est déjà posée, le joueur actif choisit précisément la carte qu’il récupère. Pour ouvrir une table vide, il pose une carte, sauf s’il peut poser toute sa main en une combinaison valide. La piste et les commandes sont actives uniquement pendant le tour du joueur concerné.
-
-Les poses légales déclenchent des effets gradués selon le nombre de cartes (1 à 5+), avec Mjolnir à partir de 4 cartes et Ragnarök à partir de 5. Les effets sonores sont générés localement par le navigateur et peuvent être coupés. À la victoire d’une manche, chaque joueur perdant reçoit en pénalité le nombre de cartes restantes dans sa main ; les scores cumulés sont affichés dans le clan et la partie s’arrête à 15 points.
+```powershell
+$env:PORT=8090
+npm start
+```

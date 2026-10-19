@@ -12,12 +12,27 @@ const turnDurationMs = 60_000;
 const startCountdownMs = 5_000;
 const emptyRoomLifetimeMs = 10_000;
 const colors = ["pink", "yellow", "cyan", "orange", "violet", "lime"];
+const worlds = [
+  ["ASGARD", "Asgard", "Le royaume des dieux"],
+  ["MIDGARD", "Midgard", "Le monde des humains"],
+  ["VANAHEIM", "Vanaheim", "Le monde des Vanes"],
+  ["JOTUNHEIM", "Jotunheim", "Le pays des géants"],
+  ["NIFLHEIM", "Niflheim", "Le monde du brouillard"],
+  ["MUSPELHEIM", "Muspelheim", "Le royaume du feu"],
+  ["ALFHEIM", "Alfheim", "Le monde des elfes lumineux"],
+  ["SVARTALFHEIM", "Svartalfheim", "Le monde des nains"],
+  ["HELHEIM", "Helheim", "Le royaume des morts"]
+];
 const rooms = new Map();
+const profiles = new Map();
 const waitingSockets = new Set();
+const reconnectGraceMs = 60_000;
 
-function createRoom(code) {
-  return { code, players: new Map(), started: false, startingAt: null, startTimer: null, emptyTimer: null, round: 1, scores: new Map(), table: null, pendingPickup: null, currentPlayerId: null, turnEndsAt: null, turnTimer: null, passCount: 0, eventId: 0, event: null, chat: [], lastAction: "Le salon attend ses champions." };
+function createRoom(code, name, description) {
+  return { code, name, description, players: new Map(), started: false, startingAt: null, startTimer: null, emptyTimer: null, round: 1, scores: new Map(), table: null, pendingPickup: null, currentPlayerId: null, turnEndsAt: null, turnTimer: null, passCount: 0, eventId: 0, event: null, chat: [], lastAction: "Le monde attend ses champions." };
 }
+
+worlds.forEach(([code, name, description]) => rooms.set(code, createRoom(code, name, description)));
 
 function createDeck() {
   return colors.flatMap((color) => Array.from({ length: 9 }, (_, index) => ({ id: `${color}-${index + 1}`, color, value: index + 1 })));
@@ -33,7 +48,7 @@ function shuffle(cards) {
 }
 
 function send(socket, message) {
-  if (socket.readyState === socket.OPEN) socket.send(JSON.stringify(message));
+  if (socket && socket.readyState === socket.OPEN) socket.send(JSON.stringify(message));
 }
 
 function broadcast(room, message) {
@@ -54,7 +69,7 @@ function publicRoom(room) {
     chat: room.chat,
     lastAction: room.lastAction,
     players: [...room.players.values()].map((player) => ({
-      id: player.id, name: player.name, ready: player.ready, host: player.host,
+      id: player.id, name: player.name, ready: player.ready,
       cardCount: player.hand.length, score: room.scores.get(player.id) || 0
     }))
   };
@@ -66,14 +81,16 @@ function syncRoom(room) {
 
 function waitingRooms() {
   return [...rooms.values()]
-    .filter((room) => !room.started)
     .map((room) => ({
       roomCode: room.code,
+      worldName: room.name,
+      worldDescription: room.description,
       playerCount: room.players.size,
       maxPlayers,
-      startingAt: room.startingAt
+      startingAt: room.startingAt,
+      started: room.started
     }))
-    .sort((first, second) => second.playerCount - first.playerCount || first.roomCode.localeCompare(second.roomCode));
+    .sort((first, second) => worlds.findIndex(([code]) => code === first.roomCode) - worlds.findIndex(([code]) => code === second.roomCode));
 }
 
 function syncWaitingRooms() {
@@ -96,18 +113,19 @@ function error(socket, message) {
   send(socket, { type: "error", message });
 }
 
-function removePlayer(socket) {
+function removePlayer(socket, action = "a quitté le monde.") {
   const room = rooms.get(socket.roomCode);
   const player = room?.players.get(socket.playerId);
   if (!room || !player) return false;
   room.players.delete(player.id);
+  const profile = profiles.get(profileKey(player.name));
+  if (profile) profile.roomCode = null;
   socket.playerId = null;
   if (room.players.size > 0) {
-    if (player.host) room.players.values().next().value.host = true;
-    room.lastAction = `${player.name} a quitté le fjord.`;
+    room.lastAction = `${player.name} ${action}`;
     syncRoom(room);
   } else {
-    room.lastAction = "Le salon attend ses champions.";
+    room.lastAction = "Le monde attend ses champions.";
     scheduleEmptyRoom(room);
   }
   syncWaitingRooms();
@@ -116,6 +134,28 @@ function removePlayer(socket) {
 
 function normalizeRoomCode(value) {
   return String(value || "").trim().toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 12);
+}
+
+function normalizeName(value) {
+  return String(value || "").trim().slice(0, 18);
+}
+
+function profileKey(name) {
+  return name.toLowerCase();
+}
+
+function expireDisconnectedPlayer(room, player) {
+  if (player.socket || room.players.get(player.id) !== player) return;
+  room.players.delete(player.id);
+  const profile = profiles.get(profileKey(player.name));
+  if (profile) profile.roomCode = null;
+  if (room.players.size > 0) {
+    room.lastAction = `${player.name} a été déconnecté.`;
+    syncRoom(room);
+  } else {
+    scheduleEmptyRoom(room);
+  }
+  syncWaitingRooms();
 }
 
 function addChat(room, player, text) {
@@ -238,29 +278,53 @@ function advanceTurn(room) {
 }
 
 function handleMessage(socket, message) {
+  if (message.type === "authenticate") {
+    if (socket.profile) return error(socket, "Tu es déjà identifié.");
+    const name = normalizeName(message.name);
+    if (name.length < 2) return error(socket, "Choisis un pseudo de 2 caractères minimum.");
+    const key = profileKey(name);
+    const profile = profiles.get(key) || { id: crypto.randomUUID(), name, roomCode: null };
+    if (profile.socket && profile.socket.readyState === profile.socket.OPEN) return error(socket, "Ce guerrier est déjà connecté.");
+    profile.socket = socket;
+    profiles.set(key, profile);
+    socket.profile = profile;
+    socket.playerId = profile.id;
+    send(socket, { type: "authenticated", playerId: profile.id, name: profile.name, roomCode: profile.roomCode });
+    if (profile.roomCode) {
+      const room = rooms.get(profile.roomCode);
+      const player = room?.players.get(profile.id);
+      if (player) {
+        clearTimeout(player.disconnectTimer);
+        player.disconnectTimer = null;
+        player.socket = socket;
+        socket.roomCode = room.code;
+        send(socket, { type: "joined", playerId: player.id, roomCode: room.code });
+        syncRoom(room);
+      }
+    }
+    return syncWaitingRooms();
+  }
   if (message.type === "join") {
-    if (socket.playerId) return error(socket, "Quitte d'abord ton salon actuel.");
-    const name = String(message.name || "").trim().slice(0, 18);
+    if (!socket.profile) return error(socket, "Identifie-toi avant de choisir un monde.");
+    if (socket.playerId && socket.roomCode) return error(socket, "Quitte d'abord ton monde actuel.");
     const requestedCode = normalizeRoomCode(message.roomCode);
-    if (!requestedCode) return error(socket, "Saisis le code du salon à rejoindre ou à créer.");
-    if (!/^[A-Z0-9-]{4,12}$/.test(requestedCode)) return error(socket, "Le code du salon doit contenir 4 à 12 caractères.");
-    const room = rooms.get(requestedCode) || createRoom(requestedCode);
+    const room = rooms.get(requestedCode);
+    if (!room) return error(socket, "Ce monde n'existe pas.");
     if (room.emptyTimer) {
       clearTimeout(room.emptyTimer);
       room.emptyTimer = null;
     }
-    if (name.length < 2) return error(socket, "Choisis un pseudo de 2 caractères minimum.");
-    if (room.started || room.startingAt) return error(socket, "Le lancement de la partie est déjà confirmé.");
+    if (room.started) return error(socket, "Cette partie est déjà en cours et ne peut pas être rejointe.");
+    if (room.startingAt) return error(socket, "Le lancement de la partie est déjà confirmé.");
     if (room.players.size >= maxPlayers) return error(socket, "Le salon est complet.");
-    if ([...room.players.values()].some((player) => player.name.toLowerCase() === name.toLowerCase())) return error(socket, "Ce pseudo est déjà utilisé.");
-    const id = crypto.randomUUID();
-    const player = { id, name, socket, host: room.players.size === 0, ready: true, hand: [] };
-    room.players.set(id, player);
-    socket.playerId = id;
+    if ([...room.players.values()].some((player) => player.name.toLowerCase() === socket.profile.name.toLowerCase())) return error(socket, "Ce pseudo est déjà utilisé dans ce monde.");
+    const player = { id: socket.profile.id, name: socket.profile.name, socket, ready: true, hand: [], disconnectTimer: null };
+    room.players.set(player.id, player);
+    socket.playerId = player.id;
     socket.roomCode = requestedCode;
-    rooms.set(requestedCode, room);
-    send(socket, { type: "joined", playerId: id, roomCode: requestedCode });
-    room.lastAction = `${name} a rejoint le fjord.`;
+    socket.profile.roomCode = requestedCode;
+    send(socket, { type: "joined", playerId: player.id, roomCode: requestedCode });
+    room.lastAction = `${player.name} a rejoint ${room.name}.`;
     syncRoom(room);
     return syncWaitingRooms();
   }
@@ -278,6 +342,24 @@ function handleMessage(socket, message) {
       syncRoom(room);
       syncWaitingRooms();
     }
+    return send(socket, { type: "left" });
+  }
+  if (message.type === "forfeit") {
+    if (!room.started) return error(socket, "La partie n'a pas commencé.");
+    const wasCurrentPlayer = room.currentPlayerId === player.id;
+    room.pendingPickup = room.pendingPickup?.playerId === player.id ? null : room.pendingPickup;
+    if (!removePlayer(socket, "a déclaré forfait.")) return error(socket, "Impossible de quitter la partie.");
+    if (room.players.size < 2) {
+      clearTurnTimer(room);
+      room.started = false;
+      room.currentPlayerId = null;
+      room.turnEndsAt = null;
+      room.lastAction = "La partie est arrêtée : il ne reste pas assez de guerriers.";
+    } else if (wasCurrentPlayer) {
+      advanceTurn(room);
+    }
+    syncRoom(room);
+    syncWaitingRooms();
     return send(socket, { type: "left" });
   }
   if (message.type === "start") {
@@ -369,12 +451,12 @@ webSockets.on("connection", (socket) => {
     if (!room) return syncWaitingRooms();
     const player = room.players.get(socket.playerId);
     if (!player) return syncWaitingRooms();
-    if (room.startingAt && room.players.size <= 2) {
-      clearTimeout(room.startTimer);
-      room.startTimer = null;
-      room.startingAt = null;
-    }
-    removePlayer(socket);
+    player.socket = null;
+    const profile = profiles.get(profileKey(player.name));
+    if (profile) profile.socket = null;
+    player.disconnectTimer = setTimeout(() => expireDisconnectedPlayer(room, player), reconnectGraceMs);
+    syncRoom(room);
+    syncWaitingRooms();
   });
 });
 
